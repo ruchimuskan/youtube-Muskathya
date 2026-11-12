@@ -1,0 +1,3 @@
+file '/Users/rohitjaiswal/Desktop/youtube content/data/voice_quality/_tts_parts_sentence_013/013_narration_00.wav'
+file '/Users/rohitjaiswal/Desktop/youtube content/data/voice_quality/pause_0.wav'
+file '/Users/rohitjaiswal/Desktop/youtube content/data/voice_quality/_tts_parts_sentence_013/013_narration_01.wav'

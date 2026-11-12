@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+  <meta charset="UTF-8" />
+  <title>Content Categories</title>
+  <style>
+  body { font-family: system-ui, sans-serif; margin: 2rem; background: #0f1115; color: #e8eaed; max-width: 960px; }
+  a { color: #8ab4f8; }
+  .card { background: #1a1d24; padding: 1rem 1.25rem; border-radius: 8px; margin-bottom: 1rem; }
+  input[type=number] { width: 4rem; }
+  table { width: 100%; border-collapse: collapse; }
+  td, th { padding: 0.4rem; border-bottom: 1px solid #333; }
+  </style>
+</head>
+<body>
+  <p><a href="/">← Dashboard</a></p>
+  <h1>Content categories & calendar</h1>
+
+  <div class="card">
+    <p>Auto selection: <strong>{{ "ON" if config.auto_category_selection else "OFF" }}</strong></p>
+    <p>Format mode: <strong>{{ config.video_format_mode }}</strong></p>
+    <p>Edit weights in <code>data/category_config.json</code> or POST <code>/api/categories</code>.</p>
+  </div>
+
+  <div class="card">
+    <h2>Categories</h2>
+    <table>
+      <tr><th>ID</th><th>Hindi name</th><th>Enabled</th><th>Weight</th></tr>
+      {% for c in categories %}
+      <tr>
+        <td>{{ c.id }}</td>
+        <td>{{ c.name_hi }}</td>
+        <td>{{ "✓" if c.enabled else "—" }}</td>
+        <td>{{ "%.0f"|format(c.weight * 100) }}%</td>
+      </tr>
+      {% endfor %}
+    </table>
+  </div>
+
+  <div class="card">
+    <h2>Calendar (recent / planned)</h2>
+    <ul>
+      {% for e in calendar %}
+      <li>{{ e.status }} — {{ e.get("category_id", "?") }} — {{ e.get("topic", e.get("story_id", "")) }}</li>
+      {% else %}
+      <li>No entries yet — run <code>python -m app.main generate</code></li>
+      {% endfor %}
+    </ul>
+  </div>
+</body>
+</html>

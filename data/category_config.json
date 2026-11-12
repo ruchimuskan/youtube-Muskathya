@@ -1,0 +1,33 @@
+{
+  "auto_category_selection": true,
+  "manual_category_id": null,
+  "video_format_mode": "long",
+  "narrator_gender_override": null,
+  "visual_style_override": null,
+  "category_weights": {
+    "moral": 0.2,
+    "horror_mystery": 0.15,
+    "emotional_family": 0.15,
+    "inspirational": 0.1,
+    "raja_rani_fantasy": 0.1,
+    "kids_animal": 0.1,
+    "village_life": 0.1,
+    "folk_mythology": 0.05,
+    "suspense_thriller": 0.05
+  },
+  "enabled_categories": [
+    "moral",
+    "horror_mystery",
+    "emotional_family",
+    "inspirational",
+    "raja_rani_fantasy",
+    "kids_animal",
+    "village_life",
+    "folk_mythology",
+    "suspense_thriller",
+    "fantasy_adventure",
+    "life_lessons",
+    "indian_folk",
+    "mythology_inspired"
+  ]
+}

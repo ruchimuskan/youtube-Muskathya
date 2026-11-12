@@ -1,0 +1,28 @@
+{
+  "entries": [
+    {
+      "id": 1,
+      "category_id": "mythology_inspired",
+      "topic": "बंदर और बंदरी की दोस्ती: एक संरक्षण की कहानी",
+      "format_mode": "long",
+      "status": "generating",
+      "created_at": "2026-11-12T13:36:09.335396+00:00"
+    },
+    {
+      "id": 2,
+      "category_id": "mythology_inspired",
+      "topic": "शिव जी का गणेश को दिया गया उपहार: एक अनोखी कथा",
+      "format_mode": "long",
+      "status": "generating",
+      "created_at": "2026-11-12T13:42:03.744844+00:00"
+    },
+    {
+      "id": 3,
+      "category_id": "mythology_inspired",
+      "topic": "शिव जी का गणेश को दिया गया उपहार: एक अनोखी यात्रा",
+      "format_mode": "long",
+      "status": "generating",
+      "created_at": "2026-11-12T13:47:37.576905+00:00"
+    }
+  ]
+}

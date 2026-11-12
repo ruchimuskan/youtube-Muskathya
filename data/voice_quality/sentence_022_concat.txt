@@ -1,0 +1,5 @@
+file '/Users/rohitjaiswal/Desktop/youtube content/data/voice_quality/_tts_parts_sentence_022/022_narration_00.wav'
+file '/Users/rohitjaiswal/Desktop/youtube content/data/voice_quality/pause_0.wav'
+file '/Users/rohitjaiswal/Desktop/youtube content/data/voice_quality/_tts_parts_sentence_022/022_narration_01.wav'
+file '/Users/rohitjaiswal/Desktop/youtube content/data/voice_quality/pause_1.wav'
+file '/Users/rohitjaiswal/Desktop/youtube content/data/voice_quality/_tts_parts_sentence_022/022_narration_02.wav'

@@ -1,0 +1,7 @@
+file '/Users/rohitjaiswal/Desktop/youtube content/data/tts_acceptance/_tts_parts_acceptance_0/900_narration_00.wav'
+file '/Users/rohitjaiswal/Desktop/youtube content/data/tts_acceptance/pause_0.wav'
+file '/Users/rohitjaiswal/Desktop/youtube content/data/tts_acceptance/_tts_parts_acceptance_0/900_narration_01.wav'
+file '/Users/rohitjaiswal/Desktop/youtube content/data/tts_acceptance/pause_1.wav'
+file '/Users/rohitjaiswal/Desktop/youtube content/data/tts_acceptance/_tts_parts_acceptance_0/900_narration_02.wav'
+file '/Users/rohitjaiswal/Desktop/youtube content/data/tts_acceptance/pause_2.wav'
+file '/Users/rohitjaiswal/Desktop/youtube content/data/tts_acceptance/_tts_parts_acceptance_0/900_narration_03.wav'

@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>YouTube Channel Manager</title>
+  <style>
+  body { font-family: system-ui, sans-serif; margin: 2rem; background: #0f1115; color: #e8eaed; }
+  a { color: #8ab4f8; }
+  .card { background: #1a1d24; padding: 1rem 1.25rem; border-radius: 8px; margin-bottom: 1rem; }
+  table { width: 100%; border-collapse: collapse; }
+  td, th { text-align: left; padding: 0.5rem; border-bottom: 1px solid #333; }
+  .warn { color: #fbbc04; }
+  </style>
+</head>
+<body>
+  <h1>YouTube Channel Manager</h1>
+  <p><a href="/categories">Content categories & calendar</a></p>
+
+  <div class="card">
+    <h2>Channel</h2>
+    {% if channel %}
+      <p>Connected: <strong>{{ channel.channel_title }}</strong> ({{ channel.channel_id }})</p>
+    {% else %}
+      <p class="warn">Not connected.</p>
+      <p><a href="/oauth/start">Connect YouTube (Google OAuth)</a></p>
+    {% endif %}
+    <p>OAuth: {{ oauth_status }}</p>
+    {% if settings.emergency_stop %}
+      <p class="warn">Emergency stop is ON</p>
+    {% endif %}
+  </div>
+
+  <div class="card">
+    <h2>Overview</h2>
+    <p>Total videos produced: {{ total_videos }}</p>
+  </div>
+
+  <div class="card">
+    <h2>Recent uploads</h2>
+    <table>
+      <tr><th>Title</th><th>Status</th><th>URL</th></tr>
+      {% for u in uploads %}
+      <tr>
+        <td>{{ u.title }}</td>
+        <td>{{ u.upload_status }} / {{ u.privacy }}</td>
+        <td>{% if u.youtube_url %}<a href="{{ u.youtube_url }}">view</a>{% else %}—{% endif %}</td>
+      </tr>
+      {% else %}
+      <tr><td colspan="3">No uploads yet</td></tr>
+      {% endfor %}
+    </table>
+  </div>
+
+  <div class="card">
+    <h2>AI learning history</h2>
+    <ul>
+      {% for l in lessons %}
+        <li><em>{{ l.category }}</em> — {{ l.lesson }}</li>
+      {% else %}
+        <li>No lessons stored yet</li>
+      {% endfor %}
+    </ul>
+  </div>
+</body>
+</html>

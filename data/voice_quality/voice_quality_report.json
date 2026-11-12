@@ -1,0 +1,287 @@
+{
+  "model": "hi_IN-pratham-medium",
+  "total": 30,
+  "passed": 30,
+  "results": [
+    {
+      "index": 0,
+      "sentence": "रोहित की माँ ने कहा।",
+      "segments": [
+        "रोहित की माँ ने कहा।"
+      ],
+      "audio": "data/voice_quality/sentence_000.wav",
+      "passed": true
+    },
+    {
+      "index": 1,
+      "sentence": "रोहित की माँ ने कहा, यहाँ आओ।",
+      "segments": [
+        "रोहित की माँ ने कहा।",
+        "यहाँ आओ।"
+      ],
+      "audio": "data/voice_quality/sentence_001.wav",
+      "passed": true
+    },
+    {
+      "index": 2,
+      "sentence": "रोहित ने अपनी माँ से पूछा, आप कहाँ जा रही हैं?",
+      "segments": [
+        "रोहित ने अपनी माँ से पूछा।",
+        "आप कहाँ जा रही हैं?"
+      ],
+      "audio": "data/voice_quality/sentence_002.wav",
+      "passed": true
+    },
+    {
+      "index": 3,
+      "sentence": "माँ ने प्यार से अपने बेटे को बुलाया।",
+      "segments": [
+        "माँ ने प्यार से अपने बेटे को बुलाया।"
+      ],
+      "audio": "data/voice_quality/sentence_003.wav",
+      "passed": true
+    },
+    {
+      "index": 4,
+      "sentence": "एक दिन रोहित जंगल में चला गया।",
+      "segments": [
+        "एक दिन रोहित जंगल में चला गया।"
+      ],
+      "audio": "data/voice_quality/sentence_004.wav",
+      "passed": true
+    },
+    {
+      "index": 5,
+      "sentence": "अचानक उसके सामने एक अजीब आदमी आ गया।",
+      "segments": [
+        "अचानक उसके सामने एक अजीब आदमी आ गया।"
+      ],
+      "audio": "data/voice_quality/sentence_005.wav",
+      "passed": true
+    },
+    {
+      "index": 6,
+      "sentence": "रोहित की माँ ने कहा, यहाँ आओ। रोहित ने पूछा, क्या हुआ माँ?",
+      "segments": [
+        "रोहित की माँ ने कहा।",
+        "यहाँ आओ।",
+        "रोहित ने पूछा।",
+        "क्या हुआ माँ?"
+      ],
+      "audio": "data/voice_quality/sentence_006.wav",
+      "passed": true
+    },
+    {
+      "index": 7,
+      "sentence": "एक दिन रोहित अपनी माँ के साथ बाजार गया। वहाँ उसने एक सुंदर खिलौना देखा।",
+      "segments": [
+        "एक दिन रोहित अपनी माँ के साथ बाजार गया।",
+        "वहाँ उसने एक सुंदर खिलौना देखा।"
+      ],
+      "audio": "data/voice_quality/sentence_007.wav",
+      "passed": true
+    },
+    {
+      "index": 8,
+      "sentence": "मुस्कान ने खिड़की से बाहर देखा और मुस्कुराई।",
+      "segments": [
+        "मुस्कान ने खिड़की से बाहर देखा और मुस्कुराई।"
+      ],
+      "audio": "data/voice_quality/sentence_008.wav",
+      "passed": true
+    },
+    {
+      "index": 9,
+      "sentence": "आरव ने ईमानदारी से काम करना सीखा।",
+      "segments": [
+        "आरव ने ईमानदारी से काम करना सीखा।"
+      ],
+      "audio": "data/voice_quality/sentence_009.wav",
+      "passed": true
+    },
+    {
+      "index": 10,
+      "sentence": "गाँव के मेले में बहुत शोर था।",
+      "segments": [
+        "गाँव के मेले में बहुत शोर था।"
+      ],
+      "audio": "data/voice_quality/sentence_010.wav",
+      "passed": true
+    },
+    {
+      "index": 11,
+      "sentence": "बूढ़े किसान ने बच्चों को नैतिक सीख सुनाई।",
+      "segments": [
+        "बूढ़े किसान ने बच्चों को नैतिक सीख सुनाई।"
+      ],
+      "audio": "data/voice_quality/sentence_011.wav",
+      "passed": true
+    },
+    {
+      "index": 12,
+      "sentence": "क्या तुम मेरी मदद करोगे?",
+      "segments": [
+        "क्या तुम मेरी मदद करोगे?"
+      ],
+      "audio": "data/voice_quality/sentence_012.wav",
+      "passed": true
+    },
+    {
+      "index": 13,
+      "sentence": "हाँ, मैं ज़रूर मदद करूँगा।",
+      "segments": [
+        "हाँ।",
+        "मैं ज़रूर मदद करूँगा।"
+      ],
+      "audio": "data/voice_quality/sentence_013.wav",
+      "passed": true
+    },
+    {
+      "index": 14,
+      "sentence": "महारानी ने राजा से अपनी चिंता व्यक्त की।",
+      "segments": [
+        "महारानी ने राजा से अपनी चिंता व्यक्त की।"
+      ],
+      "audio": "data/voice_quality/sentence_014.wav",
+      "passed": true
+    },
+    {
+      "index": 15,
+      "sentence": "अंधेरे कमरे में एक रहस्य छिपा था।",
+      "segments": [
+        "अंधेरे कमरे में एक रहस्य छिपा था।"
+      ],
+      "audio": "data/voice_quality/sentence_015.wav",
+      "passed": true
+    },
+    {
+      "index": 16,
+      "sentence": "सूरज निकलते ही पक्षी गाने लगे।",
+      "segments": [
+        "सूरज निकलते ही पक्षी गाने लगे।"
+      ],
+      "audio": "data/voice_quality/sentence_016.wav",
+      "passed": true
+    },
+    {
+      "index": 17,
+      "sentence": "बारिश की बूँदें पत्तों पर गिर रही थीं।",
+      "segments": [
+        "बारिश की बूँदें पत्तों पर गिर रही थीं।"
+      ],
+      "audio": "data/voice_quality/sentence_017.wav",
+      "passed": true
+    },
+    {
+      "index": 18,
+      "sentence": "दादी ने कहानी सुनाई और सब सो गए।",
+      "segments": [
+        "दादी ने कहानी सुनाई और सब सो गए।"
+      ],
+      "audio": "data/voice_quality/sentence_018.wav",
+      "passed": true
+    },
+    {
+      "index": 19,
+      "sentence": "छोटे बच्चे खेलते हुए खुश थे।",
+      "segments": [
+        "छोटे बच्चे खेलते हुए खुश थे।"
+      ],
+      "audio": "data/voice_quality/sentence_019.wav",
+      "passed": true
+    },
+    {
+      "index": 20,
+      "sentence": "वहाँ इसलिए गया क्योंकि माँ ने बुलाया था।",
+      "segments": [
+        "वहाँ इसलिए गया क्योंकि माँ ने बुलाया था।"
+      ],
+      "audio": "data/voice_quality/sentence_020.wav",
+      "passed": true
+    },
+    {
+      "index": 21,
+      "sentence": "यहाँ बैठो और शांति से सुनो।",
+      "segments": [
+        "यहाँ बैठो और शांति से सुनो।"
+      ],
+      "audio": "data/voice_quality/sentence_021.wav",
+      "passed": true
+    },
+    {
+      "index": 22,
+      "sentence": "रोहित की माँ ने कहा, जल्दी करो, समय कम है।",
+      "segments": [
+        "रोहित की माँ ने कहा।",
+        "जल्दी करो।",
+        "समय कम है।"
+      ],
+      "audio": "data/voice_quality/sentence_022.wav",
+      "passed": true
+    },
+    {
+      "index": 23,
+      "sentence": "उसने सोचा, क्या यह सपना है?",
+      "segments": [
+        "उसने सोचा।",
+        "क्या यह सपना है?"
+      ],
+      "audio": "data/voice_quality/sentence_023.wav",
+      "passed": true
+    },
+    {
+      "index": 24,
+      "sentence": "रास्ते पर एक अजनबी खड़ा था।",
+      "segments": [
+        "रास्ते पर एक अजनबी खड़ा था।"
+      ],
+      "audio": "data/voice_quality/sentence_024.wav",
+      "passed": true
+    },
+    {
+      "index": 25,
+      "sentence": "मैं तुम्हें कभी नहीं भूलूँगा।",
+      "segments": [
+        "मैं तुम्हें कभी नहीं भूलूँगा।"
+      ],
+      "audio": "data/voice_quality/sentence_025.wav",
+      "passed": true
+    },
+    {
+      "index": 26,
+      "sentence": "उनकी दोस्ती हर मुश्किल में टूटी नहीं।",
+      "segments": [
+        "उनकी दोस्ती हर मुश्किल में टूटी नहीं।"
+      ],
+      "audio": "data/voice_quality/sentence_026.wav",
+      "passed": true
+    },
+    {
+      "index": 27,
+      "sentence": "रात ढलते ही तारे चमकने लगे।",
+      "segments": [
+        "रात ढलते ही तारे चमकने लगे।"
+      ],
+      "audio": "data/voice_quality/sentence_027.wav",
+      "passed": true
+    },
+    {
+      "index": 28,
+      "sentence": "उसने ईमानदारी से माफी माँगी।",
+      "segments": [
+        "उसने ईमानदारी से माफी माँगी।"
+      ],
+      "audio": "data/voice_quality/sentence_028.wav",
+      "passed": true
+    },
+    {
+      "index": 29,
+      "sentence": "आखिर में सभी खुशी से मिल बैठे।",
+      "segments": [
+        "आखिर में सभी खुशी से मिल बैठे।"
+      ],
+      "audio": "data/voice_quality/sentence_029.wav",
+      "passed": true
+    }
+  ]
+}
