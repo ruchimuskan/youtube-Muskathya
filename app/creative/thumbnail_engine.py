@@ -85,7 +85,8 @@ JSON only:
                 art_path, hi_text, output_dir, count=1
             )[0]
             dest = output_dir / f"thumb_v{i + 1}.jpg"
-            shutil.copy(final_with_text, dest)
+            if final_with_text.resolve() != dest.resolve():
+                shutil.copy(final_with_text, dest)
             variants.append(dest)
 
         best = self.overlay.pick_best(variants)

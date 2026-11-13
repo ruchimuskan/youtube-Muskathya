@@ -280,11 +280,11 @@ class ContentPipeline:
                     publish_at=publish_at,
                     thumbnail_path=best_thumb,
                 )
-                result["youtube_video_id"] = upload_row.youtube_video_id
-                result["youtube_url"] = upload_row.youtube_url
+                result["youtube_video_id"] = upload_row["youtube_video_id"]
+                result["youtube_url"] = upload_row["youtube_url"]
                 result["steps"].append("uploaded")
-                self.calendar.mark_status(story_id, "published", youtube_url=upload_row.youtube_url)
-                self.notify.send("Video uploaded", f"{upload_row.youtube_url} ({privacy})")
+                self.calendar.mark_status(story_id, "published", youtube_url=upload_row["youtube_url"])
+                self.notify.send("Video uploaded", f"{upload_row['youtube_url']} ({privacy})")
             else:
                 self.notify.send("Video generated", str(final_path))
 

@@ -37,7 +37,7 @@ class YouTubeUploader:
         privacy: str | None = None,
         publish_at: datetime | None = None,
         thumbnail_path: Path | None = None,
-    ) -> YouTubeUpload:
+    ) -> dict[str, Any]:
         privacy = privacy or self.settings.privacy_mode
         if self.settings.emergency_stop:
             raise RuntimeError("Emergency stop is enabled")
@@ -113,5 +113,15 @@ class YouTubeUploader:
             )
             session.add(row)
             session.flush()
-            Repository(session).audit("video_uploaded", "youtube_upload", str(row.id), {"video_id": video_id})
-            return row
+            upload_id = row.id
+            Repository(session).audit(
+                "video_uploaded", "youtube_upload", str(upload_id), {"video_id": video_id}
+            )
+
+        return {
+            "id": upload_id,
+            "youtube_video_id": video_id,
+            "youtube_url": url,
+            "thumbnail_status": thumb_status,
+            "api_errors": errors or None,
+        }

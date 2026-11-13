@@ -91,6 +91,13 @@ def cmd_test_tts() -> None:
     print("Report:", get_settings().data_dir / "voice_quality/voice_quality_report.json")
 
 
+def cmd_publish(args: argparse.Namespace) -> None:
+    from app.automation.publish_story import publish_story
+
+    result = publish_story(args.story_id, upload=args.upload, privacy=args.privacy)
+    print(result)
+
+
 def cmd_scheduler() -> None:
     from app.automation.daily_scheduler import start_blocking_scheduler
 
@@ -131,6 +138,10 @@ def main(argv: list[str] | None = None) -> int:
     sub.add_parser("oauth-url", help="Print Google OAuth authorization URL")
     sub.add_parser("test-ai", help="Test Cloudflare Workers AI connection")
     sub.add_parser("test-tts", help="Hindi TTS acceptance + voice quality report")
+    pub = sub.add_parser("publish", help="Finish SEO/thumbnail and upload an existing story video")
+    pub.add_argument("--story-id", type=int, required=True)
+    pub.add_argument("--upload", action="store_true", help="Upload to YouTube")
+    pub.add_argument("--privacy", default="public", choices=["public", "unlisted", "private"])
     sub.add_parser(
         "scheduler",
         help="Daily auto generate+upload (PIPELINE_DAILY_RUN_* → YouTube publish PUBLISH_HOUR)",
@@ -149,6 +160,8 @@ def main(argv: list[str] | None = None) -> int:
         cmd_test_ai()
     elif args.command == "test-tts":
         cmd_test_tts()
+    elif args.command == "publish":
+        cmd_publish(args)
     elif args.command == "scheduler":
         cmd_scheduler()
     else:
