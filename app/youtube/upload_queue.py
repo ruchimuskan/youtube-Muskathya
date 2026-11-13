@@ -9,6 +9,7 @@ from zoneinfo import ZoneInfo
 
 from app.config import get_settings
 from app.database import Repository, session_scope
+from app.utils.workspace_paths import abs_path, abs_path_str
 from app.youtube.scheduler import PublishScheduler
 from app.youtube.uploader import YouTubeUploader
 
@@ -51,6 +52,9 @@ def enqueue(
 ) -> dict[str, Any]:
     if publish_at_utc is None:
         publish_at_utc = PublishScheduler().next_slot_when_quota_exhausted()
+
+    video_path = abs_path_str(video_path)
+    thumbnail_path = abs_path_str(thumbnail_path) if thumbnail_path else None
 
     entry = {
         "id": f"story_{story_id or 0}_{int(datetime.now().timestamp())}",
@@ -104,9 +108,11 @@ def process_due(*, force: bool = False) -> list[dict[str, Any]]:
                 remaining.append(item)
                 continue
 
-        video_path = Path(item["video_path"])
+        video_path = abs_path(item["video_path"])
         if not video_path.exists():
-            logger.error("Queued upload missing file: %s", video_path)
+            logger.error("Queued upload missing file: %s (keeping in queue)", video_path)
+            item["last_error"] = f"missing_file:{video_path}"
+            remaining.append(item)
             continue
 
         thumb = Path(item["thumbnail_path"]) if item.get("thumbnail_path") else None

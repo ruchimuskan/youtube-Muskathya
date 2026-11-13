@@ -19,6 +19,15 @@ jobs:
     runs-on: [self-hosted, macOS, youtube-ai]
     steps:
       - uses: actions/checkout@v4
+        with:
+          clean: false
+
+      - name: Load .env
+        run: |
+          if [ -f .env ]; then set -a && source .env && set +a; fi
+
+      - name: Preflight
+        run: bash scripts/preflight_automation.sh
 
       - name: Set up Python
         uses: actions/setup-python@v5

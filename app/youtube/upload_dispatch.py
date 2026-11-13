@@ -6,6 +6,7 @@ from pathlib import Path
 from typing import Any
 
 from app.config import get_settings
+from app.utils.workspace_paths import abs_path
 from app.youtube.scheduler import PublishScheduler
 from app.youtube.upload_queue import can_upload_today, enqueue
 from app.youtube.uploader import YouTubeUploader
@@ -31,8 +32,8 @@ def dispatch_youtube_upload(
         slot = PublishScheduler().next_slot_when_quota_exhausted()
         entry = enqueue(
             video_asset_id=video_asset_id,
-            video_path=str(video_path),
-            thumbnail_path=str(thumbnail_path) if thumbnail_path else None,
+            video_path=str(abs_path(video_path)),
+            thumbnail_path=str(abs_path(thumbnail_path)) if thumbnail_path else None,
             metadata=metadata,
             story_id=story_id,
             publish_at_utc=slot,
@@ -54,7 +55,7 @@ def dispatch_youtube_upload(
     uploader = YouTubeUploader()
     upload_info = uploader.upload_video(
         video_asset_id,
-        video_path,
+        abs_path(video_path),
         metadata,
         privacy=privacy,
         publish_at=publish_at,

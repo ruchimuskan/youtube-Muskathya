@@ -81,24 +81,23 @@ python -m app.main generate --upload
 | `generate` | Full pipeline; add `--upload` to send to YouTube |
 | `publish` | Finish SEO/thumbnail for an existing render; add `--upload` to publish |
 
-## GitHub Actions + cron-job.org
+## Daily auto-generate + YouTube upload (3 PM / 6 PM IST)
 
-1. Push repo to GitHub; add secrets: `CLOUDFLARE_*`, optional `AI_PROVIDER`.
-2. Register self-hosted runner on your Mac with labels: `self-hosted`, `macOS`, `youtube-ai`.
-3. Workflow: `.github/workflows/generate_youtube_video.yml` (`workflow_dispatch` + `repository_dispatch` event `generate_youtube_video`).
-4. On [cron-job.org](https://cron-job.org), POST to GitHub API `repos/{owner}/{repo}/dispatches` with body:
+Uploads need **your Mac**: videos, `data/oauth_tokens.json`, and `.env` stay **gitignored** on purpose (security + size). GitHub only stores **code**; the self-hosted runner uses the same folder on disk.
 
-```json
-{
-  "event_type": "generate_youtube_video",
-  "client_payload": {
-    "upload": false,
-    "idempotency_key": "2026-11-11T10:00:00Z"
-  }
-}
-```
+**Pick one (or both):**
 
-Use a GitHub PAT with `repo` scope stored only in cron-job.org credentials—not in source code.
+| Method | Setup |
+|--------|--------|
+| **macOS LaunchAgent (recommended)** | `bash scripts/macos/install_launchd_scheduler.sh` — runs 3 PM generate+upload and 6 PM queue |
+| **Always-on scheduler** | `python -m app.main scheduler` (APScheduler in terminal / background) |
+| **GitHub Actions** | Self-hosted runner labels: `self-hosted`, `macOS`, `youtube-ai`. Workflow `daily_youtube_schedule.yml` uses `checkout` with **`clean: false`** so `.env`, `data/`, `output/` are not wiped |
+
+Preflight before every run: `bash scripts/preflight_automation.sh` (OAuth + `EMERGENCY_STOP`).
+
+Manual queue drain: `python -m app.main upload-queue` (add `--force` to ignore `publish_at`).
+
+Optional manual workflow: `generate_youtube_video.yml` (`workflow_dispatch` + `repository_dispatch`).
 
 ## Emergency stop
 

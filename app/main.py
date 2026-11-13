@@ -104,10 +104,10 @@ def cmd_scheduler() -> None:
     start_blocking_scheduler()
 
 
-def cmd_upload_queue() -> None:
+def cmd_upload_queue(args: argparse.Namespace) -> None:
     from app.youtube.upload_queue import process_due
 
-    done = process_due()
+    done = process_due(force=args.force)
     print({"processed": len(done), "items": done})
 
 
@@ -205,9 +205,14 @@ def main(argv: list[str] | None = None) -> int:
         "scheduler",
         help="Daily auto generate+upload (PIPELINE_DAILY_RUN_* → YouTube publish PUBLISH_HOUR)",
     )
-    sub.add_parser(
+    uq = sub.add_parser(
         "upload-queue",
         help="Upload videos waiting for 6 PM IST when daily quota allows",
+    )
+    uq.add_argument(
+        "--force",
+        action="store_true",
+        help="Ignore scheduled publish_at and upload now if quota allows",
     )
     thumb = sub.add_parser("thumb", help="Regenerate story-based YouTube thumbnail from story JSON")
     thumb.add_argument("--story-id", type=int, required=True)
@@ -231,7 +236,7 @@ def main(argv: list[str] | None = None) -> int:
     elif args.command == "scheduler":
         cmd_scheduler()
     elif args.command == "upload-queue":
-        cmd_upload_queue()
+        cmd_upload_queue(args)
     elif args.command == "thumb":
         cmd_thumb(args)
     else:

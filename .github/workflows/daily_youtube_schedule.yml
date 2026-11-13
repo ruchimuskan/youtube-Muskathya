@@ -4,39 +4,84 @@ on:
   schedule:
     # 3:00 PM IST — generate + upload or queue
     - cron: "30 9 * * *"
-    # 6:00 PM IST — publish any queued uploads when quota resets
+    # 6:00 PM IST — publish any queued uploads when quota allows
     - cron: "30 12 * * *"
   workflow_dispatch:
+    inputs:
+      job:
+        description: Which job to run
+        type: choice
+        options:
+          - pipeline
+          - upload_queue
+        default: pipeline
+
+env:
+  TIMEZONE: Asia/Kolkata
+  PUBLISHING_MODE: schedule
 
 jobs:
   pipeline:
-    if: github.event.schedule == '30 9 * * *' || github.event_name == 'workflow_dispatch'
+    if: >-
+      github.event.schedule == '30 9 * * *' ||
+      (github.event_name == 'workflow_dispatch' && github.event.inputs.job == 'pipeline')
     runs-on: [self-hosted, macOS, youtube-ai]
     steps:
       - uses: actions/checkout@v4
-      - name: Run daily generate
+        with:
+          clean: false
+
+      - name: Load .env (kept on self-hosted Mac; not in git)
         run: |
-          source .venv/bin/activate 2>/dev/null || (python3.11 -m venv .venv && source .venv/bin/activate && pip install -r requirements.txt)
+          if [ -f .env ]; then set -a && source .env && set +a; fi
+
+      - name: Preflight (OAuth + emergency stop)
+        run: bash scripts/preflight_automation.sh
+
+      - name: Python deps
+        run: |
+          if [ ! -d .venv ]; then python3.11 -m venv .venv; fi
+          source .venv/bin/activate
+          pip install -q -r requirements.txt
+
+      - name: Run daily generate + upload
+        run: |
           source .venv/bin/activate
           python -m app.main init-db
+          python -m app.main upload-queue || true
           python -m app.main generate --upload --idempotency-key "gha-daily-${{ github.run_id }}"
         env:
           AI_PROVIDER: ${{ secrets.AI_PROVIDER }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          PUBLISHING_MODE: schedule
-          TIMEZONE: Asia/Kolkata
           EMERGENCY_STOP: ${{ vars.EMERGENCY_STOP || 'false' }}
 
   upload_queue:
-    if: github.event.schedule == '30 12 * * *'
+    if: >-
+      github.event.schedule == '30 12 * * *' ||
+      (github.event_name == 'workflow_dispatch' && github.event.inputs.job == 'upload_queue')
     runs-on: [self-hosted, macOS, youtube-ai]
     steps:
       - uses: actions/checkout@v4
+        with:
+          clean: false
+
+      - name: Load .env
+        run: |
+          if [ -f .env ]; then set -a && source .env && set +a; fi
+
+      - name: Preflight
+        run: bash scripts/preflight_automation.sh
+
+      - name: Python deps
+        run: |
+          if [ ! -d .venv ]; then python3.11 -m venv .venv; fi
+          source .venv/bin/activate
+          pip install -q -r requirements.txt
+
       - name: Process deferred uploads (6 PM IST)
         run: |
           source .venv/bin/activate
           python -m app.main upload-queue
         env:
-          TIMEZONE: Asia/Kolkata
           EMERGENCY_STOP: ${{ vars.EMERGENCY_STOP || 'false' }}
