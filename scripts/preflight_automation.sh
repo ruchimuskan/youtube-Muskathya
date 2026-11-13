@@ -20,8 +20,16 @@ if [[ "${EMERGENCY_STOP:-false}" == "true" ]]; then
   die "EMERGENCY_STOP=true — set false in .env or GitHub Variables"
 fi
 
-if [[ ! -f "$ROOT/client_secrets.json" ]]; then
-  die "Missing client_secrets.json in $ROOT"
+SECRETS="${GOOGLE_CLIENT_SECRETS_FILE:-$ROOT/client_secrets.json}"
+if [[ ! -f "$SECRETS" ]]; then
+  ALT="$HOME/Desktop/youtube-google auth.json"
+  if [[ -f "$ALT" ]]; then
+    cp "$ALT" "$ROOT/client_secrets.json"
+    SECRETS="$ROOT/client_secrets.json"
+    echo "INFO: Copied OAuth client JSON from Desktop → client_secrets.json"
+  else
+    die "Missing client_secrets.json (download from Google Cloud or set GOOGLE_CLIENT_SECRETS_FILE)"
+  fi
 fi
 
 token="${YOUTUBE_OAUTH_TOKEN_FILE:-$ROOT/data/oauth_tokens.json}"
