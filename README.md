@@ -81,23 +81,15 @@ python -m app.main generate --upload
 | `generate` | Full pipeline; add `--upload` to send to YouTube |
 | `publish` | Finish SEO/thumbnail for an existing render; add `--upload` to publish |
 
-## Daily auto-generate + YouTube upload (3 PM / 6 PM IST)
+## Daily auto (cron-job.org + GitHub + Mac) — push ke baad khud chale
 
-Uploads need **your Mac**: videos, `data/oauth_tokens.json`, and `.env` stay **gitignored** on purpose (security + size). GitHub only stores **code**; the self-hosted runner uses the same folder on disk.
+1. **Ek baar** GitHub Secrets: `CRONJOB_API_KEY` ([cron-job.org Settings](https://console.cron-job.org/dashboard)), `GH_DISPATCH_PAT` (GitHub token, `repo` scope). Details: [`docs/ONE_TIME_SECRETS.md`](docs/ONE_TIME_SECRETS.md)
+2. **Mac** par self-hosted runner (`self-hosted`, `macOS`, `youtube-ai`) + OAuth / `.env` usi folder mein.
+3. Har **`git push`** → workflow **Sync cron-job.org schedules** → 3 PM / 6 PM IST timers [cron-job.org](https://console.cron-job.org/dashboard) par.
 
-**Pick one (or both):**
+Timer fire → GitHub `repository_dispatch` → `daily_youtube_schedule.yml` → tumhare Mac par pipeline + upload.
 
-| Method | Setup |
-|--------|--------|
-| **macOS LaunchAgent (recommended)** | `bash scripts/macos/install_launchd_scheduler.sh` — runs 3 PM generate+upload and 6 PM queue |
-| **Always-on scheduler** | `python -m app.main scheduler` (APScheduler in terminal / background) |
-| **GitHub Actions** | Self-hosted runner labels: `self-hosted`, `macOS`, `youtube-ai`. Workflow `daily_youtube_schedule.yml` uses `checkout` with **`clean: false`** so `.env`, `data/`, `output/` are not wiped |
-
-Preflight before every run: `bash scripts/preflight_automation.sh` (OAuth + `EMERGENCY_STOP`).
-
-Manual queue drain: `python -m app.main upload-queue` (add `--force` to ignore `publish_at`).
-
-Optional manual workflow: `generate_youtube_video.yml` (`workflow_dispatch` + `repository_dispatch`).
+Fallback (bina cron-job): GitHub cron ya `bash scripts/macos/install_launchd_scheduler.sh`.
 
 ## Emergency stop
 

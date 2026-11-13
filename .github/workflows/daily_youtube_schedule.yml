@@ -6,6 +6,8 @@ on:
     - cron: "30 9 * * *"
     # 6:00 PM IST — publish any queued uploads when quota allows
     - cron: "30 12 * * *"
+  repository_dispatch:
+    types: [daily_pipeline, upload_queue]
   workflow_dispatch:
     inputs:
       job:
@@ -24,7 +26,8 @@ jobs:
   pipeline:
     if: >-
       github.event.schedule == '30 9 * * *' ||
-      (github.event_name == 'workflow_dispatch' && github.event.inputs.job == 'pipeline')
+      (github.event_name == 'workflow_dispatch' && github.event.inputs.job == 'pipeline') ||
+      (github.event_name == 'repository_dispatch' && github.event.action == 'daily_pipeline')
     runs-on: [self-hosted, macOS, youtube-ai]
     steps:
       - uses: actions/checkout@v4
@@ -59,7 +62,8 @@ jobs:
   upload_queue:
     if: >-
       github.event.schedule == '30 12 * * *' ||
-      (github.event_name == 'workflow_dispatch' && github.event.inputs.job == 'upload_queue')
+      (github.event_name == 'workflow_dispatch' && github.event.inputs.job == 'upload_queue') ||
+      (github.event_name == 'repository_dispatch' && github.event.action == 'upload_queue')
     runs-on: [self-hosted, macOS, youtube-ai]
     steps:
       - uses: actions/checkout@v4

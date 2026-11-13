@@ -1,0 +1,29 @@
+# After you add secrets CRONJOB_API_KEY + GH_DISPATCH_PAT once, every push to main
+# updates cron-job.org timers → GitHub → your Mac runner.
+name: Sync cron-job.org schedules
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install httpx
+        run: pip install "httpx>=0.27,<1"
+
+      - name: Register / update cron-job.org → GitHub dispatch
+        env:
+          CRONJOB_API_KEY: ${{ secrets.CRONJOB_API_KEY }}
+          GH_DISPATCH_PAT: ${{ secrets.GH_DISPATCH_PAT }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+        run: python scripts/cronjob/sync_github_schedules.py
