@@ -28,24 +28,42 @@ jobs:
       github.event.schedule == '30 9 * * *' ||
       (github.event_name == 'workflow_dispatch' && github.event.inputs.job == 'pipeline') ||
       (github.event_name == 'repository_dispatch' && github.event.action == 'daily_pipeline')
-    runs-on: [self-hosted, macOS, youtube-ai]
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+
+      - name: Daily cache key (IST)
+        id: cachekey
+        run: echo "key=pipeline-$(TZ=Asia/Kolkata date +%Y%m%d)" >> "$GITHUB_OUTPUT"
+
+      - name: Restore pipeline data cache
+        uses: actions/cache@v4
         with:
-          clean: false
+          path: |
+            data
+            output
+          key: ${{ steps.cachekey.outputs.key }}
 
-      - name: Load .env (kept on self-hosted Mac; not in git)
-        run: |
-          if [ -f .env ]; then set -a && source .env && set +a; fi
+      - name: Materialize OAuth (no Mac)
+        env:
+          GOOGLE_CLIENT_SECRETS_JSON: ${{ secrets.GOOGLE_CLIENT_SECRETS_JSON }}
+          YOUTUBE_OAUTH_TOKENS_JSON: ${{ secrets.YOUTUBE_OAUTH_TOKENS_JSON }}
+        run: bash scripts/ci/materialize_oauth.sh
 
-      - name: Preflight (OAuth + emergency stop)
-        run: bash scripts/preflight_automation.sh
+      - name: System deps (ffmpeg, piper voice)
+        run: bash scripts/ci/install_cloud_deps.sh
 
       - name: Python deps
-        run: |
-          if [ ! -d .venv ]; then python3.11 -m venv .venv; fi
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: |
+          python -m venv .venv
           source .venv/bin/activate
           pip install -q -r requirements.txt
+
+      - name: Preflight
+        run: bash scripts/preflight_automation.sh
 
       - name: Run daily generate + upload
         run: |
@@ -54,38 +72,56 @@ jobs:
           python -m app.main upload-queue || true
           python -m app.main generate --upload --idempotency-key "gha-daily-${{ github.run_id }}"
         env:
-          AI_PROVIDER: ${{ secrets.AI_PROVIDER }}
+          AI_PROVIDER: cloudflare
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_IMAGE_ENABLED: "true"
+          COMFYUI_ENABLED: "false"
+          ALLOW_PLACEHOLDER_IMAGES: "false"
           EMERGENCY_STOP: ${{ vars.EMERGENCY_STOP || 'false' }}
+          TIMEZONE: Asia/Kolkata
+          PUBLISHING_MODE: schedule
 
   upload_queue:
     if: >-
       github.event.schedule == '30 12 * * *' ||
       (github.event_name == 'workflow_dispatch' && github.event.inputs.job == 'upload_queue') ||
       (github.event_name == 'repository_dispatch' && github.event.action == 'upload_queue')
-    runs-on: [self-hosted, macOS, youtube-ai]
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+
+      - name: Daily cache key (IST)
+        id: cachekey
+        run: echo "key=pipeline-$(TZ=Asia/Kolkata date +%Y%m%d)" >> "$GITHUB_OUTPUT"
+
+      - name: Restore pipeline data cache
+        uses: actions/cache@v4
         with:
-          clean: false
+          path: |
+            data
+            output
+          key: ${{ steps.cachekey.outputs.key }}
 
-      - name: Load .env
-        run: |
-          if [ -f .env ]; then set -a && source .env && set +a; fi
+      - name: Materialize OAuth
+        env:
+          GOOGLE_CLIENT_SECRETS_JSON: ${{ secrets.GOOGLE_CLIENT_SECRETS_JSON }}
+          YOUTUBE_OAUTH_TOKENS_JSON: ${{ secrets.YOUTUBE_OAUTH_TOKENS_JSON }}
+        run: bash scripts/ci/materialize_oauth.sh
 
-      - name: Preflight
-        run: bash scripts/preflight_automation.sh
-
-      - name: Python deps
-        run: |
-          if [ ! -d .venv ]; then python3.11 -m venv .venv; fi
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: |
+          python -m venv .venv
           source .venv/bin/activate
           pip install -q -r requirements.txt
 
       - name: Process deferred uploads (6 PM IST)
         run: |
           source .venv/bin/activate
+          python -m app.main init-db
           python -m app.main upload-queue
         env:
           EMERGENCY_STOP: ${{ vars.EMERGENCY_STOP || 'false' }}
+          TIMEZONE: Asia/Kolkata

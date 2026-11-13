@@ -22,6 +22,9 @@ fi
 
 SECRETS="${GOOGLE_CLIENT_SECRETS_FILE:-$ROOT/client_secrets.json}"
 if [[ ! -f "$SECRETS" ]]; then
+  if [[ -n "${GITHUB_ACTIONS:-}" ]]; then
+    die "Missing client_secrets.json on CI — set GitHub secret GOOGLE_CLIENT_SECRETS_JSON"
+  fi
   ALT="$HOME/Desktop/youtube-google auth.json"
   if [[ -f "$ALT" ]]; then
     cp "$ALT" "$ROOT/client_secrets.json"

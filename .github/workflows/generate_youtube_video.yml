@@ -16,18 +16,18 @@ on:
 
 jobs:
   generate:
-    runs-on: [self-hosted, macOS, youtube-ai]
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-        with:
-          clean: false
 
-      - name: Load .env
-        run: |
-          if [ -f .env ]; then set -a && source .env && set +a; fi
+      - name: Materialize OAuth
+        env:
+          GOOGLE_CLIENT_SECRETS_JSON: ${{ secrets.GOOGLE_CLIENT_SECRETS_JSON }}
+          YOUTUBE_OAUTH_TOKENS_JSON: ${{ secrets.YOUTUBE_OAUTH_TOKENS_JSON }}
+        run: bash scripts/ci/materialize_oauth.sh
 
-      - name: Preflight
-        run: bash scripts/preflight_automation.sh
+      - name: System deps
+        run: bash scripts/ci/install_cloud_deps.sh
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -39,6 +39,9 @@ jobs:
           python -m venv .venv
           source .venv/bin/activate
           pip install -r requirements.txt
+
+      - name: Preflight
+        run: bash scripts/preflight_automation.sh
 
       - name: Initialize database
         run: |
@@ -67,8 +70,9 @@ jobs:
           fi
           python -m app.main generate $UPLOAD_FLAG $EXTRA
         env:
-          AI_PROVIDER: ${{ secrets.AI_PROVIDER }}
+          AI_PROVIDER: cloudflare
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          OLLAMA_BASE_URL: http://127.0.0.1:11434
+          CLOUDFLARE_IMAGE_ENABLED: "true"
+          COMFYUI_ENABLED: "false"
           EMERGENCY_STOP: ${{ vars.EMERGENCY_STOP || 'false' }}
