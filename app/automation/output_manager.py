@@ -20,6 +20,22 @@ class OutputManager:
         for d in self.dirs.values():
             d.mkdir(parents=True, exist_ok=True)
 
+    def save_full_story_json(self, story: dict[str, Any]) -> Path:
+        """Single file with the complete generated story (scenes, dialogue, metadata)."""
+        payload = {
+            "story_project_id": story.get("story_project_id"),
+            "title": story.get("title"),
+            "language": story.get("language"),
+            "genre": story.get("genre"),
+            "content_category_id": story.get("content_category_id"),
+            "target_duration_sec": story.get("target_duration_sec"),
+            "is_short": story.get("is_short"),
+            "story": story,
+        }
+        path = self.root / "story.json"
+        path.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
+        return path
+
     def save_story_artifacts(
         self,
         story: dict[str, Any],
@@ -27,6 +43,8 @@ class OutputManager:
         seo: dict[str, Any] | None = None,
         image_prompts: list[dict] | None = None,
     ) -> None:
+        self.save_full_story_json(story)
+
         script_lines = [story.get("hook_opening", ""), ""]
         for scene in story.get("scenes", []):
             script_lines.append(scene.get("narration", ""))

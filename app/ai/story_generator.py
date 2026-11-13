@@ -71,7 +71,8 @@ class StoryGenerator:
 
     def _hindi_system(self) -> str:
         return (
-            "You are an expert Hindi cinematic storyteller for YouTube. "
+            "You are an expert Hindi cinematic storyteller for YouTube with high audience retention. "
+            "Stories must feel alive: conflict, surprise, emotion, dialogue — never flat preaching. "
             "All narration, dialogue, titles, hook and ending MUST be in natural Hindi (Devanagari). "
             "visual_description and image_prompt MUST be in English for AI image generation. "
             "Output only valid JSON."
@@ -137,7 +138,14 @@ Apply lessons:
 Requirements:
 - Use {scene_cap}
 - {brevity}
-- Strong hook in first 5-10 seconds
+- RETENTION (critical for YouTube reach):
+  * Open with a curiosity gap in hook_opening — a shocking question or unfinished moment
+  * Each scene ends with a mini-cliffhanger or emotional turn (viewer wants the next scene)
+  * At least one unexpected twist or reversal before climax — avoid predictable moral lectures
+  * Use vivid dialogue between characters, not only narrator monologue
+  * Relatable Indian settings, names, and emotions; avoid generic filler lines
+  * Title must spark click curiosity in Hindi without clickbait lies
+- Strong hook in first 5-10 seconds (pattern interrupt)
 - Character visual descriptions for consistency across all scenes
 - Children-safe if genre is children
 - Original work only
@@ -229,7 +237,7 @@ Schema:
             )
             expand_prompt = f"""Continue this Hindi story JSON. Add at least {needed} NEW scenes.
 Keep characters consistent. Language rules: Hindi Devanagari narration/dialogue; English visual_description.
-Each scene needs 5-7 Hindi sentences narration (~22-30s spoken).
+Each new scene needs 5-7 Hindi sentences (~22-30s spoken), dialogue where possible, and a retention hook at the scene end.
 Existing title: {story.get("title")}
 Characters: {story.get("characters")}
 Last scenes: {scenes[-3:]}

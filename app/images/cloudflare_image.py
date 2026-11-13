@@ -33,6 +33,8 @@ class CloudflareImageGenerator:
         size: tuple[int, int],
         *,
         seed: int | None = None,
+        negative_prompt: str | None = None,
+        guidance: float | None = None,
     ) -> Path:
         if not self.is_available():
             raise RuntimeError("Cloudflare image generation not configured")
@@ -48,13 +50,20 @@ class CloudflareImageGenerator:
             f"{self.settings.cloudflare_account_id}/ai/run/{self.settings.cloudflare_image_model}"
         )
         headers = {"Authorization": f"Bearer {self.settings.cloudflare_api_token}"}
+        neg = self.settings.image_negative_prompt
+        if negative_prompt:
+            neg = f"{neg}, {negative_prompt}"
         payload: dict[str, Any] = {
             "prompt": prompt,
-            "negative_prompt": self.settings.image_negative_prompt,
+            "negative_prompt": neg,
             "width": gen_w,
             "height": gen_h,
-            "num_steps": self.settings.image_num_steps,
-            "guidance": self.settings.image_guidance,
+            "num_steps": (
+                max(self.settings.image_num_steps, 28)
+                if guidance is not None
+                else self.settings.image_num_steps
+            ),
+            "guidance": guidance if guidance is not None else self.settings.image_guidance,
         }
         if seed is not None:
             payload["seed"] = seed

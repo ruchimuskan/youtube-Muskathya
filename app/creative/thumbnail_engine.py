@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import logging
 import shutil
 from pathlib import Path
@@ -8,116 +9,185 @@ from typing import Any
 from PIL import Image, ImageEnhance
 
 from app.ai.providers import LLMRouter
+from app.config import get_settings
 from app.content.categories import get_category
+from app.creative.hindi_thumbnail_copy import resolve_overlay_text, sanitize_hindi
+from app.creative.story_thumbnail_analyzer import StoryThumbnailAnalyzer
+from app.creative.thumbnail_art_fallback import create_story_fallback_art
+from app.creative.thumbnail_character_bible import (
+    THUMB_NEGATIVE_EXTRA,
+    apply_character_bible,
+    build_composition_block,
+    story_has_shiva_ganesha,
+)
+from app.creative.thumbnail_paths import canonical_thumbnail_path, story_thumbnail_in_workdir
+from app.creative.thumbnail_qc import validate_thumbnail
 from app.images.cloudflare_image import CloudflareImageGenerator
-from app.creative.thumbnail_scene import enhance_scene_for_thumb, pick_hero_scene
-from app.video.thumbnail_generator import ThumbnailGenerator
+from app.video.thumbnail_generator import ThumbnailGenerator, YOUTUBE_THUMB_SIZE
 
 logger = logging.getLogger(__name__)
-YOUTUBE_THUMB_SIZE = (1280, 720)
+
+CINEMATIC_PREFIX = (
+    "Premium Indian YouTube thumbnail key art, ultra HD 3D cinematic CGI animation, "
+    "Pixar-quality mythological style, NOT a photograph, NOT stock image, NO TEXT, NO LETTERS"
+)
 
 
 class ThumbnailEngine:
-    """AI artwork without text + reliable Hindi overlay."""
+    """Story JSON → analysis → SDXL poster (no text) → validated Hindi overlay → QC."""
 
     def __init__(self, llm: LLMRouter | None = None) -> None:
         self.llm = llm or LLMRouter()
+        self.analyzer = StoryThumbnailAnalyzer(self.llm)
         self.overlay = ThumbnailGenerator()
         self.images = CloudflareImageGenerator()
+        self.settings = get_settings()
 
-    def _concept_prompt(self, story: dict, category_id: str, variant: int) -> dict[str, Any]:
+    def _scene_narration(self, story: dict, scene_number: int) -> str:
+        for s in story.get("scenes") or []:
+            if int(s.get("scene_number", 0)) == int(scene_number):
+                return (s.get("narration") or "")[:300]
+        return ""
+
+    def _build_image_prompt(self, story: dict, category_id: str, analysis: dict) -> str:
         category = get_category(category_id)
-        prompt = f"""Analyze this Hindi story for YouTube thumbnail variant {variant + 1}.
-Category: {category.name_hi}
-Title: {story.get("title")}
-Synopsis: {story.get("synopsis")}
-Hook: {story.get("hook_opening")}
 
-JSON only:
-{{
-  "focal_moment": "...",
-  "main_character_emotion": "...",
-  "art_prompt_en": "YouTube thumbnail, extreme close-up face or hero moment, dramatic rim light, vibrant colors, shallow depth of field, {category.thumbnail_tone}, Indian cinematic",
-  "hindi_text": "2-5 powerful Hindi words for thumbnail",
-  "composition": "close-up|wide|dramatic angle",
-  "reason": "why this works for audience"
-}}"""
-        response = self.llm.complete(prompt, system="Valid JSON. hindi_text Devanagari only.", json_mode=True)
-        return self.llm.parse_json(response.text)
+        if story_has_shiva_ganesha(story):
+            # Compact prompt — Cloudflare SDXL rejects very long / duplicate deity blocks
+            return (
+                f"{CINEMATIC_PREFIX}. Wide medium-close YouTube thumbnail, TWO characters visible in same frame (65% of image). "
+                "LEFT character: blue-skinned Hindu god Shiva, long matted jata hair, crescent moon, third eye, "
+                "rudraksha beads, offering a glowing golden divine candle with both hands. "
+                "RIGHT character: young god Ganesha, elephant head with long trunk and big ears, tusks, golden crown, "
+                "NOT a human woman, NOT a human boy face, NOT goddess Parvati, only elephant-headed Ganesha. "
+                "Both look at the candle between them. Mount Kailash Himalaya background, golden divine rays. "
+                "3D CGI Pixar-style Indian mythology, sharp, vibrant, absolutely NO TEXT NO LETTERS NO CAPTIONS "
+                "NO SUBTITLES NO WATERMARK, no modern clothing."
+            )
+
+        chars = analysis.get("main_characters") or []
+        char_block = " | ".join(
+            f"{c.get('name')}: {(c.get('appearance_en', '') or '')[:120]}. "
+            f"Expression: {c.get('expression')}. Pose: {c.get('pose_action')}"
+            for c in chars[:3]
+            if isinstance(c, dict)
+        )
+        scene_n = int(analysis.get("best_scene_number") or 5)
+        narration = self._scene_narration(story, scene_n)[:180]
+
+        return (
+            f"{CINEMATIC_PREFIX}. {build_composition_block(analysis, category_id)[:300]} "
+            f"Moment: {(analysis.get('focal_moment_en') or '')[:160]}. "
+            f"Context: {narration}. "
+            f"Characters: {char_block[:400]}. "
+            f"Key object: {(analysis.get('key_object') or '')[:80]}. "
+            f"Background: {(analysis.get('background_en') or category.visual_style)[:120]}. "
+            f"{category.thumbnail_tone}."
+        )[:1800]
+
+    def _generate_art(self, prompt: str, out: Path, seed: int) -> bool:
+        if not self.images.is_available():
+            return False
+        for attempt in range(max(1, self.settings.image_max_retries)):
+            try:
+                self.images.generate(
+                    prompt,
+                    out,
+                    YOUTUBE_THUMB_SIZE,
+                    seed=seed + attempt * 31,
+                    negative_prompt=THUMB_NEGATIVE_EXTRA,
+                )
+                if out.exists() and out.stat().st_size > 55_000:
+                    return True
+            except Exception as exc:
+                logger.warning("Thumbnail SDXL attempt %s: %s", attempt + 1, exc)
+        return False
 
     def generate(
         self,
         story: dict[str, Any],
         category_id: str,
-        scene_image: Path,
+        scene_image: Path | None,
         output_dir: Path,
         *,
         count: int = 3,
         all_scene_images: list[Path] | None = None,
     ) -> tuple[list[Path], list[dict], Path]:
+        _ = scene_image, all_scene_images
         output_dir.mkdir(parents=True, exist_ok=True)
+        story_id = story.get("story_project_id")
+
+        analysis = self.analyzer.analyze(story, category_id)
+        analysis = apply_character_bible(story, category_id, analysis)
+
+        headline, suspense, locked = resolve_overlay_text(story, category_id, analysis)
+        analysis["hindi_headline"] = headline
+        analysis["hindi_suspense"] = suspense
+        analysis["hindi_copy_locked"] = locked
+
+        (output_dir / "thumbnail_analysis.json").write_text(
+            json.dumps(analysis, ensure_ascii=False, indent=2), encoding="utf-8"
+        )
+
+        scheme = "gold"
         concepts: list[dict] = []
         variants: list[Path] = []
+        variant_count = max(1, min(count, 5))
+        base_prompt = self._build_image_prompt(story, category_id, analysis)
 
-        category = get_category(category_id)
-        hero = pick_hero_scene(all_scene_images or [scene_image])
-        hero_base = output_dir / "thumb_hero_base.jpg"
-        enhance_scene_for_thumb(hero, hero_base)
-
-        for i in range(count):
-            concept = self._concept_prompt(story, category_id, i)
-            concepts.append(concept)
-            hi_text = (concept.get("hindi_text") or story.get("title", "")).strip()
-            if len(hi_text) < 4:
-                hi_text = (story.get("title") or "कहानी")[:32]
+        for i in range(variant_count):
+            concept = {**analysis, "variant": i + 1}
             art_path = output_dir / f"thumb_art_{i + 1}.png"
-
-            art_prompt = (
-                (concept.get("art_prompt_en") or category.thumbnail_tone)
-                + ". NO TEXT, NO LETTERS, NO WATERMARK, ultra sharp, high contrast, "
-                "single focal subject, rule of thirds"
-            )
-            used_ai = False
-            try:
-                if self.images.is_available() and i < 2:
-                    self.images.generate(art_prompt, art_path, YOUTUBE_THUMB_SIZE, seed=2200 + i)
-                    used_ai = art_path.exists() and art_path.stat().st_size > 40_000
-            except Exception as exc:
-                logger.warning("Thumbnail art %s failed: %s", i, exc)
-            if not used_ai:
-                shutil.copy(hero_base, art_path)
-
+            seed = 8800 + int(story_id or 0) * 13 + i * 97
+            prompt = base_prompt
             if i == 1:
-                with Image.open(art_path) as im:
-                    base = ImageEnhance.Contrast(im.convert("RGB")).enhance(1.15)
-                    base.save(art_path, quality=92)
+                prompt += " Tighter framing on deity faces and glowing candle."
+            elif i == 2:
+                prompt += " Slightly stronger divine golden rim light on characters."
 
-            final_with_text = self.overlay.generate_variants(
-                art_path, hi_text, output_dir, count=1
-            )[0]
-            dest = output_dir / f"thumb_v{i + 1}.jpg"
-            if final_with_text.resolve() != dest.resolve():
-                shutil.copy(final_with_text, dest)
-            variants.append(dest)
+            used_ai = self._generate_art(prompt, art_path, seed=seed)
+            concept["art_source"] = "sdxl_cinematic" if used_ai else "category_fallback"
 
-        best = self.overlay.pick_best(variants)
-        scores = self._score_variants(variants, concepts, category_id)
-        for c, s in zip(concepts, scores):
-            c["quality_score"] = s
-        best_idx = scores.index(max(scores)) if scores else 0
-        best = variants[best_idx]
+            if not used_ai:
+                create_story_fallback_art(category_id, art_path)
+
+            with Image.open(art_path) as im:
+                im = ImageEnhance.Contrast(im.convert("RGB")).enhance(1.16)
+                im = ImageEnhance.Color(im).enhance(1.12)
+                im = ImageEnhance.Sharpness(im).enhance(1.25)
+                im.save(art_path, quality=96)
+
+            bg_only = output_dir / f"thumb_art_{i + 1}_no_text.png"
+            shutil.copy(art_path, bg_only)
+
+            final = output_dir / f"thumb_v{i + 1}.jpg"
+            self.overlay.apply_story_overlay(
+                art_path,
+                headline,
+                final,
+                suspense=suspense,
+                text_scheme=scheme,
+            )
+            analysis["approved_headline"] = headline
+            analysis["approved_suspense"] = suspense
+            qc = validate_thumbnail(
+                final,
+                analysis=analysis,
+                expected_headline=headline,
+            )
+            concept["qc_passed"] = qc.passed
+            concept["qc_issues"] = qc.issues
+            variants.append(final)
+            concepts.append(concept)
+
+        best = self.overlay.pick_best(variants) if len(variants) > 1 else variants[0]
+        canonical = story_thumbnail_in_workdir(output_dir.parent, story_id)
+        shutil.copy(best, canonical)
+        shutil.copy(best, canonical_thumbnail_path(story_id))
+        logger.info("Saved canonical thumbnail %s", canonical_thumbnail_path(story_id))
+
+        for c in concepts:
+            c["hindi_text"] = sanitize_hindi(headline)
+            c["hindi_suspense"] = sanitize_hindi(suspense)
+
         return variants, concepts, best
-
-    def _score_variants(self, paths: list[Path], concepts: list[dict], category_id: str) -> list[float]:
-        scores: list[float] = []
-        for p, c in zip(paths, concepts):
-            score = 0.5
-            if p.exists() and p.stat().st_size > 80_000:
-                score += 0.2
-            text = c.get("hindi_text", "")
-            if text and any("\u0900" <= ch <= "\u097f" for ch in text):
-                score += 0.15
-            if c.get("art_prompt_en"):
-                score += 0.15
-            scores.append(min(score, 1.0))
-        return scores

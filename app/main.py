@@ -111,6 +111,58 @@ def cmd_upload_queue() -> None:
     print({"processed": len(done), "items": done})
 
 
+def cmd_thumb(args: argparse.Namespace) -> None:
+    import json
+    from pathlib import Path
+
+    from app.config import get_settings
+    from app.content.categories import get_category
+    from app.creative.thumbnail_engine import ThumbnailEngine
+    from app.creative.thumbnail_paths import canonical_thumbnail_path
+    from app.database import session_scope
+    from app.database.models import StoryProject
+
+    settings = get_settings()
+    work_dir = settings.output_dir / f"story_{args.story_id:03d}"
+    story_path = work_dir / "story.json"
+    if story_path.exists():
+        payload = json.loads(story_path.read_text(encoding="utf-8"))
+        story = payload.get("story") or payload
+        story.setdefault("story_project_id", args.story_id)
+    else:
+        with session_scope() as session:
+            row = session.get(StoryProject, args.story_id)
+            if not row:
+                raise SystemExit(f"Story {args.story_id} not found")
+            story = dict(row.story_json or {})
+            story.setdefault("story_project_id", args.story_id)
+            story.setdefault("title", row.title)
+
+    cat = story.get("content_category_id") or "mythology_inspired"
+    try:
+        get_category(cat)
+    except KeyError:
+        cat = "mythology_inspired"
+
+    engine = ThumbnailEngine()
+    variants, concepts, best = engine.generate(
+        story,
+        cat,
+        None,
+        work_dir / "thumbnail",
+        count=args.variants,
+    )
+    print(
+        {
+            "best": str(best),
+            "canonical": str(canonical_thumbnail_path(args.story_id)),
+            "analysis": str(work_dir / "thumbnail" / "thumbnail_analysis.json"),
+            "variants": [str(p) for p in variants],
+            "headline": concepts[0].get("hindi_headline") if concepts else None,
+        }
+    )
+
+
 def cmd_oauth_url() -> None:
     from app.youtube.oauth import YouTubeOAuth
 
@@ -157,6 +209,9 @@ def main(argv: list[str] | None = None) -> int:
         "upload-queue",
         help="Upload videos waiting for 6 PM IST when daily quota allows",
     )
+    thumb = sub.add_parser("thumb", help="Regenerate story-based YouTube thumbnail from story JSON")
+    thumb.add_argument("--story-id", type=int, required=True)
+    thumb.add_argument("--variants", type=int, default=2)
 
     args = parser.parse_args(argv)
     if args.command == "init-db":
@@ -177,6 +232,8 @@ def main(argv: list[str] | None = None) -> int:
         cmd_scheduler()
     elif args.command == "upload-queue":
         cmd_upload_queue()
+    elif args.command == "thumb":
+        cmd_thumb(args)
     else:
         parser.print_help()
         return 1

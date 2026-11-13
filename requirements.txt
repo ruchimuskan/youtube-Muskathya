@@ -16,6 +16,8 @@ google-auth-httplib2>=0.2,<1
 
 # Media
 Pillow>=10.2,<12
+uharfbuzz>=0.39,<1
+freetype-py>=2.4,<3
 faster-whisper>=1.0,<2
 imageio-ffmpeg>=0.5,<1
 piper-tts>=1.2,<2

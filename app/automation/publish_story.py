@@ -5,6 +5,7 @@ import logging
 from pathlib import Path
 
 from app.ai.seo_generator import SEOGenerator
+from app.automation.output_manager import OutputManager
 from app.config import get_settings
 from app.creative.creative_package import CreativePackageWriter
 from app.creative.thumbnail_engine import ThumbnailEngine
@@ -38,7 +39,12 @@ def publish_story(
         story = dict(story_row.story_json or {})
         story_language = story_row.language
         story.setdefault("title", story_row.title)
+        story.setdefault("story_project_id", story_id)
+        story.setdefault("target_duration_sec", story_row.target_duration_sec)
+        story.setdefault("language", story_row.language)
         default_category = story_row.genre
+
+    OutputManager(work_dir).save_full_story_json(story)
 
     category_id = story.get("content_category_id", default_category)
     thumb_dir = work_dir / "thumbnail"

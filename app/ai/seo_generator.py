@@ -26,9 +26,10 @@ Topic research: {research}
 
 Rules:
 {hindi_rule}
-- Natural keyword use, no stuffing
-- 5 title variations (max 95 chars), pick one recommended
-- Description with hooks and chapters if long-form
+- Optimize for Indian YouTube search + suggested feed: curiosity titles, emotional keywords
+- Natural keyword use, no stuffing; mix Hindi + common romanized search terms in tags
+- 5 title variations (max 95 chars), pick one recommended — highest CTR without misleading
+- Description: first 2 lines = hook + main keyword; then story promise; chapters if long-form
 - 15-25 relevant tags
 - Hashtags (3-8)
 - Category ID (YouTube numeric string, e.g. 24 Entertainment)
