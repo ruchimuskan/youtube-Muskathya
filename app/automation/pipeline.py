@@ -157,6 +157,7 @@ class ContentPipeline:
                 image_paths[0],
                 output_mgr.dirs["thumbnail"],
                 count=3,
+                all_scene_images=image_paths,
             )
             thumb_hi = thumb_concepts[0].get("hindi_text") if thumb_concepts else None
             seo = self.seo_gen.generate_full_package(
@@ -257,34 +258,41 @@ class ContentPipeline:
             )
 
             if upload:
-                privacy = self.settings.privacy_mode
-                publish_at = None
-                if self.settings.publishing_mode == "schedule":
-                    publish_at = self.scheduler.next_publish_time()
-                    if privacy == "private":
-                        privacy = "public"
-                result["scheduled_publish_at"] = (
-                    publish_at.isoformat() if publish_at else None
-                )
+                from app.youtube.upload_dispatch import dispatch_youtube_upload
 
-                upload_row = self.uploader.upload_video(
-                    result["video_asset_id"],
-                    final_path,
-                    {
-                        "title": seo["recommended_title"],
-                        "description": seo.get("description", ""),
-                        "tags": seo.get("tags", []),
-                        "category_id": seo.get("category_id", "24"),
-                    },
-                    privacy=privacy,
-                    publish_at=publish_at,
+                meta = {
+                    "title": seo["recommended_title"],
+                    "description": seo.get("description", ""),
+                    "tags": seo.get("tags", []),
+                    "category_id": seo.get("category_id", "24"),
+                }
+                upload_row = dispatch_youtube_upload(
+                    video_asset_id=result["video_asset_id"],
+                    video_path=final_path,
                     thumbnail_path=best_thumb,
+                    metadata=meta,
+                    story_id=story_id,
                 )
-                result["youtube_video_id"] = upload_row["youtube_video_id"]
-                result["youtube_url"] = upload_row["youtube_url"]
-                result["steps"].append("uploaded")
-                self.calendar.mark_status(story_id, "published", youtube_url=upload_row["youtube_url"])
-                self.notify.send("Video uploaded", f"{upload_row['youtube_url']} ({privacy})")
+                result["upload_status"] = upload_row.get("status")
+                result["scheduled_publish_at"] = upload_row.get("publish_at")
+                if upload_row.get("status") == "queued":
+                    result["steps"].append("upload_queued")
+                    self.calendar.mark_status(story_id, "queued_upload")
+                    self.notify.send(
+                        "Upload queued (daily limit)",
+                        f"Next slot {upload_row.get('publish_at')}",
+                    )
+                else:
+                    result["youtube_video_id"] = upload_row.get("youtube_video_id")
+                    result["youtube_url"] = upload_row.get("youtube_url")
+                    result["steps"].append("uploaded")
+                    self.calendar.mark_status(
+                        story_id, "published", youtube_url=upload_row.get("youtube_url")
+                    )
+                    self.notify.send(
+                        "Video uploaded",
+                        f"{upload_row.get('youtube_url')} publish_at={upload_row.get('publish_at')}",
+                    )
             else:
                 self.notify.send("Video generated", str(final_path))
 

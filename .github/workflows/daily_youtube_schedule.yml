@@ -1,0 +1,42 @@
+name: Daily YouTube (IST)
+
+on:
+  schedule:
+    # 3:00 PM IST — generate + upload or queue
+    - cron: "30 9 * * *"
+    # 6:00 PM IST — publish any queued uploads when quota resets
+    - cron: "30 12 * * *"
+  workflow_dispatch:
+
+jobs:
+  pipeline:
+    if: github.event.schedule == '30 9 * * *' || github.event_name == 'workflow_dispatch'
+    runs-on: [self-hosted, macOS, youtube-ai]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run daily generate
+        run: |
+          source .venv/bin/activate 2>/dev/null || (python3.11 -m venv .venv && source .venv/bin/activate && pip install -r requirements.txt)
+          source .venv/bin/activate
+          python -m app.main init-db
+          python -m app.main generate --upload --idempotency-key "gha-daily-${{ github.run_id }}"
+        env:
+          AI_PROVIDER: ${{ secrets.AI_PROVIDER }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          PUBLISHING_MODE: schedule
+          TIMEZONE: Asia/Kolkata
+          EMERGENCY_STOP: ${{ vars.EMERGENCY_STOP || 'false' }}
+
+  upload_queue:
+    if: github.event.schedule == '30 12 * * *'
+    runs-on: [self-hosted, macOS, youtube-ai]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Process deferred uploads (6 PM IST)
+        run: |
+          source .venv/bin/activate
+          python -m app.main upload-queue
+        env:
+          TIMEZONE: Asia/Kolkata
+          EMERGENCY_STOP: ${{ vars.EMERGENCY_STOP || 'false' }}

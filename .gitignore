@@ -18,6 +18,7 @@ build/
 htmlcov/
 data/*.db
 data/oauth_tokens.json
+data/pending_youtube_uploads.json
 data/oauth_pending/
 data/assets/**
 !data/assets/.gitkeep

@@ -120,6 +120,16 @@ class Repository:
         job.finished_at = datetime.now(timezone.utc)
 
     def uploads_today_count(self) -> int:
-        today = datetime.now(timezone.utc).date()
+        from zoneinfo import ZoneInfo
+
+        from app.config import get_settings
+
+        tz = ZoneInfo(get_settings().timezone)
+        today = datetime.now(tz).date()
         rows = self.session.scalars(select(YouTubeUpload))
-        return sum(1 for u in rows if u.uploaded_at and u.uploaded_at.date() == today)
+        return sum(
+            1
+            for u in rows
+            if u.uploaded_at
+            and u.uploaded_at.replace(tzinfo=timezone.utc).astimezone(tz).date() == today
+        )

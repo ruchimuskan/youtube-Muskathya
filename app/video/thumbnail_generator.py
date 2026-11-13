@@ -25,6 +25,31 @@ class ThumbnailGenerator:
                 continue
         return ImageFont.load_default()
 
+    def _wrap_text(self, text: str, font: ImageFont.ImageFont, draw: ImageDraw.ImageDraw, max_w: int) -> list[str]:
+        words = text.split()
+        if not words:
+            return [text[:28]]
+        lines: list[str] = []
+        current = words[0]
+        for word in words[1:]:
+            trial = f"{current} {word}"
+            w = draw.textlength(trial, font=font) if hasattr(draw, "textlength") else len(trial) * 18
+            if w <= max_w:
+                current = trial
+            else:
+                lines.append(current)
+                current = word
+        lines.append(current)
+        return lines[:2]
+
+    def _draw_outlined(
+        self, draw: ImageDraw.ImageDraw, xy: tuple[int, int], text: str, font: ImageFont.ImageFont
+    ) -> None:
+        x, y = xy
+        for dx, dy in ((-2, 0), (2, 0), (0, -2), (0, 2), (-2, -2), (2, 2)):
+            draw.text((x + dx, y + dy), text, fill=(0, 0, 0), font=font)
+        draw.text((x, y), text, fill=(255, 245, 120), font=font)
+
     def generate_variants(
         self,
         base_image: Path,
@@ -42,28 +67,32 @@ class ThumbnailGenerator:
             img = base.copy()
             overlay = Image.new("RGBA", YOUTUBE_THUMB_SIZE, (0, 0, 0, 0))
             draw = ImageDraw.Draw(overlay)
-            bar_height = 180 if i == 0 else 140
+            draw.rectangle([(0, 0), (1280, 140)], fill=(0, 0, 0, 90))
+            bar_height = 200 if i == 0 else 165
             draw.rectangle(
                 [(0, YOUTUBE_THUMB_SIZE[1] - bar_height), (1280, 720)],
-                fill=(0, 0, 0, 170 if i < 2 else 120),
+                fill=(0, 0, 0, 200 if i < 2 else 165),
             )
             img = Image.alpha_composite(img.convert("RGBA"), overlay).convert("RGB")
 
             draw = ImageDraw.Draw(img)
-            font_size = 64 if i == 0 else 52
+            font_size = 76 if i == 0 else 60
             font = self._hindi_font(font_size)
-            text = title[:36]
-            tw = draw.textlength(text, font=font) if hasattr(draw, "textlength") else len(text) * 20
-            x = max((1280 - int(tw)) // 2, 20)
-            y = 720 - bar_height + 30
-            draw.text((x + 2, y + 2), text, fill=(0, 0, 0), font=font)
-            draw.text((x, y), text, fill=(255, 255, 255), font=font)
+            text = title.strip()[:42]
+            lines = self._wrap_text(text, font, draw, 1180)
+            line_h = font_size + 14
+            total_h = len(lines) * line_h
+            y0 = 720 - bar_height + max((bar_height - total_h) // 2, 24)
+            for j, line in enumerate(lines):
+                tw = draw.textlength(line, font=font) if hasattr(draw, "textlength") else len(line) * 22
+                x = max((1280 - int(tw)) // 2, 24)
+                self._draw_outlined(draw, (x, y0 + j * line_h), line, font)
 
             if i == 1:
-                img = ImageEnhance.Contrast(img).enhance(1.15)
+                img = ImageEnhance.Contrast(img).enhance(1.12)
 
             out = output_dir / f"thumb_v{i + 1}.jpg"
-            img.save(out, quality=92)
+            img.save(out, quality=94)
             variants.append(out)
 
         return variants

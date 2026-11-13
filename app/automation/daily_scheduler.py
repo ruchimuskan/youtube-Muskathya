@@ -9,8 +9,19 @@ from apscheduler.triggers.cron import CronTrigger
 
 from app.automation.pipeline import ContentPipeline
 from app.config import get_settings
+from app.youtube.upload_queue import process_due
 
 logger = logging.getLogger(__name__)
+
+
+def _run_publish_queue() -> None:
+    settings = get_settings()
+    if settings.emergency_stop:
+        return
+    logger.info("Processing deferred YouTube upload queue")
+    done = process_due()
+    if done:
+        logger.info("Published %s queued video(s)", len(done))
 
 
 def _run_daily_job() -> None:
@@ -18,6 +29,7 @@ def _run_daily_job() -> None:
     if settings.emergency_stop:
         logger.warning("Emergency stop enabled — skipping daily job")
         return
+    _run_publish_queue()
     now = datetime.now(ZoneInfo(settings.timezone))
     idem = f"daily-{now.strftime('%Y-%m-%dT%H:%M')}"
     logger.info("Starting daily video job (idempotency=%s)", idem)
@@ -35,6 +47,15 @@ def start_blocking_scheduler() -> None:
             minute=settings.pipeline_daily_run_minute,
         ),
         id="daily_youtube_video",
+        replace_existing=True,
+    )
+    sched.add_job(
+        _run_publish_queue,
+        CronTrigger(
+            hour=settings.publish_hour,
+            minute=settings.publish_minute,
+        ),
+        id="youtube_upload_queue",
         replace_existing=True,
     )
     logger.info(

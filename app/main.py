@@ -104,6 +104,13 @@ def cmd_scheduler() -> None:
     start_blocking_scheduler()
 
 
+def cmd_upload_queue() -> None:
+    from app.youtube.upload_queue import process_due
+
+    done = process_due()
+    print({"processed": len(done), "items": done})
+
+
 def cmd_oauth_url() -> None:
     from app.youtube.oauth import YouTubeOAuth
 
@@ -146,6 +153,10 @@ def main(argv: list[str] | None = None) -> int:
         "scheduler",
         help="Daily auto generate+upload (PIPELINE_DAILY_RUN_* → YouTube publish PUBLISH_HOUR)",
     )
+    sub.add_parser(
+        "upload-queue",
+        help="Upload videos waiting for 6 PM IST when daily quota allows",
+    )
 
     args = parser.parse_args(argv)
     if args.command == "init-db":
@@ -164,6 +175,8 @@ def main(argv: list[str] | None = None) -> int:
         cmd_publish(args)
     elif args.command == "scheduler":
         cmd_scheduler()
+    elif args.command == "upload-queue":
+        cmd_upload_queue()
     else:
         parser.print_help()
         return 1

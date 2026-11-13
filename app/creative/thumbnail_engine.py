@@ -10,6 +10,7 @@ from PIL import Image, ImageEnhance
 from app.ai.providers import LLMRouter
 from app.content.categories import get_category
 from app.images.cloudflare_image import CloudflareImageGenerator
+from app.creative.thumbnail_scene import enhance_scene_for_thumb, pick_hero_scene
 from app.video.thumbnail_generator import ThumbnailGenerator
 
 logger = logging.getLogger(__name__)
@@ -36,7 +37,7 @@ JSON only:
 {{
   "focal_moment": "...",
   "main_character_emotion": "...",
-  "art_prompt_en": "English SDXL prompt, NO TEXT, cinematic, single subject, {category.thumbnail_tone}",
+  "art_prompt_en": "YouTube thumbnail, extreme close-up face or hero moment, dramatic rim light, vibrant colors, shallow depth of field, {category.thumbnail_tone}, Indian cinematic",
   "hindi_text": "2-5 powerful Hindi words for thumbnail",
   "composition": "close-up|wide|dramatic angle",
   "reason": "why this works for audience"
@@ -52,29 +53,39 @@ JSON only:
         output_dir: Path,
         *,
         count: int = 3,
+        all_scene_images: list[Path] | None = None,
     ) -> tuple[list[Path], list[dict], Path]:
         output_dir.mkdir(parents=True, exist_ok=True)
         concepts: list[dict] = []
         variants: list[Path] = []
 
+        category = get_category(category_id)
+        hero = pick_hero_scene(all_scene_images or [scene_image])
+        hero_base = output_dir / "thumb_hero_base.jpg"
+        enhance_scene_for_thumb(hero, hero_base)
+
         for i in range(count):
             concept = self._concept_prompt(story, category_id, i)
             concepts.append(concept)
-            hi_text = (concept.get("hindi_text") or story.get("title", ""))[:24]
+            hi_text = (concept.get("hindi_text") or story.get("title", "")).strip()
+            if len(hi_text) < 4:
+                hi_text = (story.get("title") or "कहानी")[:32]
             art_path = output_dir / f"thumb_art_{i + 1}.png"
 
             art_prompt = (
-                (concept.get("art_prompt_en") or "")
-                + ". NO TEXT, NO LETTERS, NO WATERMARK, high contrast thumbnail composition"
+                (concept.get("art_prompt_en") or category.thumbnail_tone)
+                + ". NO TEXT, NO LETTERS, NO WATERMARK, ultra sharp, high contrast, "
+                "single focal subject, rule of thirds"
             )
+            used_ai = False
             try:
-                if self.images.is_available():
-                    self.images.generate(art_prompt, art_path, YOUTUBE_THUMB_SIZE, seed=1000 + i)
-                else:
-                    Image.open(scene_image).convert("RGB").resize(YOUTUBE_THUMB_SIZE).save(art_path)
+                if self.images.is_available() and i < 2:
+                    self.images.generate(art_prompt, art_path, YOUTUBE_THUMB_SIZE, seed=2200 + i)
+                    used_ai = art_path.exists() and art_path.stat().st_size > 40_000
             except Exception as exc:
                 logger.warning("Thumbnail art %s failed: %s", i, exc)
-                Image.open(scene_image).convert("RGB").resize(YOUTUBE_THUMB_SIZE).save(art_path)
+            if not used_ai:
+                shutil.copy(hero_base, art_path)
 
             if i == 1:
                 with Image.open(art_path) as im:
