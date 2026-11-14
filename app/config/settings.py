@@ -55,7 +55,7 @@ class Settings(BaseSettings):
     piper_bin: str = "piper"
     piper_voices_dir: Path = Path("./data/voices")
     piper_voice_hi_male: str = "hi_IN-pratham-medium"
-    piper_voice_hi_female: str = "hi_IN-shreya-medium"
+    piper_voice_hi_female: str = "hi_IN-priyamvada-medium"
     piper_voice_en_male: str = "en_US-lessac-medium"
     piper_voice_en_female: str = "en_US-amy-medium"
     narrator_gender: Literal["male", "female"] = "male"

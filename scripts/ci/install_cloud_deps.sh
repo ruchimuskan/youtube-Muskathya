@@ -43,11 +43,18 @@ if [[ -x "$PIPER_DIR/piper" ]]; then
   export PATH="$PIPER_DIR:$PATH"
 fi
 
-if [[ ! -f "$VOICE_DIR/hi_IN-pratham-medium.onnx" ]]; then
-  curl -fsSL -o "$VOICE_DIR/hi_IN-pratham-medium.onnx" \
-    "https://huggingface.co/rhasspy/piper-voices/resolve/v1.0.0/hi/hi_IN/pratham/medium/hi_IN-pratham-medium.onnx"
-fi
-if [[ ! -f "$VOICE_DIR/hi_IN-pratham-medium.onnx.json" ]]; then
-  curl -fsSL -o "$VOICE_DIR/hi_IN-pratham-medium.onnx.json" \
-    "https://huggingface.co/rhasspy/piper-voices/resolve/v1.0.0/hi/hi_IN/pratham/medium/hi_IN-pratham-medium.onnx.json"
-fi
+download_voice() {
+  local name="$1"
+  local path="$2"
+  if [[ ! -f "$VOICE_DIR/${name}.onnx" ]]; then
+    curl -fsSL -o "$VOICE_DIR/${name}.onnx" \
+      "https://huggingface.co/rhasspy/piper-voices/resolve/v1.0.0/hi/hi_IN/${path}/medium/${name}.onnx"
+  fi
+  if [[ ! -f "$VOICE_DIR/${name}.onnx.json" ]]; then
+    curl -fsSL -o "$VOICE_DIR/${name}.onnx.json" \
+      "https://huggingface.co/rhasspy/piper-voices/resolve/v1.0.0/hi/hi_IN/${path}/medium/${name}.onnx.json"
+  fi
+}
+
+download_voice "hi_IN-pratham-medium" "pratham"
+download_voice "hi_IN-priyamvada-medium" "priyamvada"
