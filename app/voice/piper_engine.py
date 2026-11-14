@@ -38,6 +38,7 @@ class PiperEngine:
         if shutil.which(self.settings.piper_bin):
             return shutil.which(self.settings.piper_bin)
         for candidate in (
+            Path.cwd() / ".local" / "piper" / "piper",
             self.settings.piper_voices_dir.parent / "bin" / "piper",
             Path.cwd() / ".venv" / "bin" / "piper",
         ):

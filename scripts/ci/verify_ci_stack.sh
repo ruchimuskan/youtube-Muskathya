@@ -11,14 +11,17 @@ command -v ffmpeg
 python -c "import onnxruntime; print('onnxruntime ok')"
 
 PIPER="$(command -v piper || true)"
-if [[ -z "$PIPER" ]]; then
+if [[ -z "$PIPER" && -x "$ROOT/.local/piper/piper" ]]; then
+  PIPER="$ROOT/.local/piper/piper"
+fi
+if [[ -z "$PIPER" && -x "$ROOT/.venv/bin/piper" ]]; then
   PIPER="$ROOT/.venv/bin/piper"
 fi
-if [[ ! -x "$PIPER" ]]; then
-  echo "ERROR: piper binary missing after pip install piper-tts"
+if [[ -z "$PIPER" ]]; then
+  echo "ERROR: piper binary missing — install_cloud_deps should fetch rhasspy/piper"
   exit 1
 fi
-"$PIPER" --help | head -1
+"$PIPER" --help | head -1 || "$PIPER" 2>&1 | head -1 || true
 
 MODEL="$ROOT/data/voices/hi_IN-pratham-medium.onnx"
 test -f "$MODEL" || { echo "missing voice model"; exit 1; }
