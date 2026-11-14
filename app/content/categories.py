@@ -231,4 +231,4 @@ def format_duration_range(mode: str) -> tuple[int, int, int, int]:
         return 600, 900, 28, 45
     if mode == "compilation":
         return 600, 1200, 30, 50
-    return 300, 480, 18, 32
+    return 360, 600, 22, 40

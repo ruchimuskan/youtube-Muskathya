@@ -20,6 +20,12 @@ if [[ "${EMERGENCY_STOP:-false}" == "true" ]]; then
   die "EMERGENCY_STOP=true — set false in .env or GitHub Variables"
 fi
 
+if [[ -n "${GITHUB_ACTIONS:-}" ]]; then
+  if [[ -z "${CLOUDFLARE_ACCOUNT_ID:-}" || -z "${CLOUDFLARE_API_TOKEN:-}" ]]; then
+    die "GitHub Secrets missing: CLOUDFLARE_ACCOUNT_ID and CLOUDFLARE_API_TOKEN"
+  fi
+fi
+
 SECRETS="${GOOGLE_CLIENT_SECRETS_FILE:-$ROOT/client_secrets.json}"
 if [[ ! -f "$SECRETS" ]]; then
   if [[ -n "${GITHUB_ACTIONS:-}" ]]; then

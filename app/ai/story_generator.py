@@ -93,12 +93,13 @@ class StoryGenerator:
                 "visual_description under 30 English words."
             )
         elif req.target_duration_sec >= 300:
-            minutes_lo = max(req.target_duration_sec // 60, 5)
+            minutes_lo = max(req.target_duration_sec // 60, 6)
+            minutes_hi = max(minutes_lo + 2, min(10, (req.target_duration_sec + 59) // 60))
             scene_cap = f"{min_scenes} to {max_scenes} scenes"
             brevity = (
-                f"Target {minutes_lo}-8 minutes of Hindi narration (~{req.target_duration_sec}s audio). "
+                f"Target {minutes_lo}-{minutes_hi} minutes of Hindi narration (~{req.target_duration_sec}s audio). "
                 f"Use {scene_cap} with ONE distinct visual per scene. "
-                "Each scene 20-35 seconds of spoken Hindi (5-7 natural sentences, min ~100 Devanagari chars). "
+                "Each scene 28-45 seconds of spoken Hindi (7-9 natural sentences, min ~140 Devanagari chars). "
                 "Structure: hook → intro → development → emotional/suspense beat → climax → ending → CTA. "
                 "Never repeat the same visual_description. "
                 "visual_description: detailed English, Indian setting when relevant."
@@ -219,16 +220,17 @@ Schema:
     ) -> dict[str, Any]:
         if req.is_short:
             return story
-        min_scenes = self.settings.story_min_scenes
+        min_scenes = req.min_scenes or self.settings.story_min_scenes
+        scenes_needed = max(min_scenes, max(20, req.target_duration_sec // 24))
         scenes = story.get("scenes") or []
-        if len(scenes) >= min_scenes:
+        if len(scenes) >= scenes_needed:
             return story
 
         for attempt in range(3):
             scenes = story.get("scenes") or []
-            if len(scenes) >= min_scenes:
+            if len(scenes) >= scenes_needed:
                 break
-            needed = min_scenes - len(scenes)
+            needed = scenes_needed - len(scenes)
             logger.info(
                 "Expanding story attempt %s: %s -> need %s more scenes",
                 attempt + 1,

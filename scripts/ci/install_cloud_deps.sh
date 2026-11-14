@@ -6,7 +6,7 @@ VOICE_DIR="$ROOT/data/voices"
 mkdir -p "$VOICE_DIR"
 
 sudo apt-get update -qq
-sudo apt-get install -y ffmpeg libespeak-ng1
+sudo apt-get install -y ffmpeg libespeak-ng1 espeak-ng libsndfile1
 
 if [[ ! -f "$VOICE_DIR/hi_IN-pratham-medium.onnx" ]]; then
   curl -fsSL -o "$VOICE_DIR/hi_IN-pratham-medium.onnx" \
