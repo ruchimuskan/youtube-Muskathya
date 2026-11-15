@@ -7,7 +7,13 @@ PIPER_DIR="$ROOT/.local/piper"
 mkdir -p "$VOICE_DIR" "$PIPER_DIR"
 
 sudo apt-get update -qq
-sudo apt-get install -y ffmpeg libespeak-ng1 espeak-ng libsndfile1 wget
+sudo apt-get install -y ffmpeg libespeak-ng1 espeak-ng libsndfile1 wget fonts-noto-core fonts-dejavu-core
+
+mkdir -p "$ROOT/data/fonts"
+if [[ -f "$ROOT/assets/fonts/NotoSansDevanagari-Bold.ttf" ]]; then
+  cp "$ROOT/assets/fonts/NotoSansDevanagari-Bold.ttf" "$ROOT/data/fonts/NotoSansDevanagari-Regular.ttf" 2>/dev/null || true
+  cp "$ROOT/assets/fonts/NotoSansDevanagari-Bold.ttf" "$ROOT/data/fonts/NotoSansDevanagari-Bold.ttf" 2>/dev/null || true
+fi
 
 if [[ ! -x "$PIPER_DIR/piper" ]]; then
   ARCH="$(uname -m)"

@@ -39,10 +39,15 @@ class ImageGenerator:
         seed = abs(hash(prompt)) % 360
         base = Image.new("RGB", size, (20 + seed % 40, 28, 48))
         draw = ImageDraw.Draw(base)
-        for i in range(0, w, 80):
-            shade = 30 + (i // 80) % 50
-            draw.rectangle([(i, 0), (i + 40, h)], fill=(shade, shade + 10, shade + 30))
-        base = base.filter(ImageFilter.GaussianBlur(radius=2))
+        for i in range(0, w, 40):
+            shade = 30 + (i // 40) % 70
+            draw.rectangle([(i, 0), (i + 20, h)], fill=(shade, shade + 15, shade + 35))
+        for y in range(0, h, 60):
+            draw.line([(0, y), (w, y)], fill=(180, 140, 80), width=2)
+        cx, cy = w // 2, h // 2
+        for r in range(min(w, h) // 3, 20, -30):
+            draw.ellipse([cx - r, cy - r, cx + r, cy + r], outline=(220, 180, 100), width=3)
+        base = base.filter(ImageFilter.GaussianBlur(radius=1))
         overlay = ImageEnhance.Brightness(base).enhance(1.1)
         draw = ImageDraw.Draw(overlay)
         caption = (prompt[:100] + "…") if len(prompt) > 100 else prompt
@@ -51,7 +56,7 @@ class ImageGenerator:
         except OSError:
             font = None
         draw.text((40, h - 120), caption, fill=(230, 230, 240), font=font)
-        overlay.save(path, quality=92)
+        overlay.save(path, format="PNG")
         return path
 
     def _fallback_asset(
@@ -73,7 +78,12 @@ class ImageGenerator:
         try:
             from app.creative.thumbnail_art_fallback import create_story_fallback_art
 
-            create_story_fallback_art(category_id, path)
+            valid_cats = {
+                "mythology_inspired", "folk_mythology", "horror_mystery", "moral",
+                "emotional", "motivational", "royal", "kids", "village_life", "adventure"
+            }
+            cat = category_id if category_id in valid_cats else "moral"
+            create_story_fallback_art(cat, path)
             with Image.open(path) as im:
                 im.convert("RGB").resize(size, Image.Resampling.LANCZOS).save(path)
             return path
