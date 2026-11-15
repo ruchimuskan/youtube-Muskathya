@@ -80,6 +80,30 @@ class DialogueManager:
                 text = (line.get("line") or "").strip()
                 if not text:
                     continue
+
+                # ── Double-voice guard ──────────────────────────────────────
+                # If the narration already contains this dialogue line (the
+                # LLM often embeds quotes inside narration), playing the
+                # dialogue segment right after produces an audible echo.
+                # Skip the dialogue audio when the line appears verbatim (or
+                # nearly so) inside the narration text.
+                if narration and text in narration:
+                    logger.debug(
+                        "Scene %s dialogue %s skipped — already in narration", sn, i
+                    )
+                    continue
+                # Also skip when the dialogue is >70% of the narration by
+                # characters (catches paraphrased / minor-reword duplicates).
+                if narration:
+                    overlap = sum(1 for ch in text if ch in narration)
+                    if len(text) > 0 and overlap / len(text) > 0.70:
+                        logger.debug(
+                            "Scene %s dialogue %s skipped — %.0f%% overlap with narration",
+                            sn, i, overlap / len(text) * 100,
+                        )
+                        continue
+                # ────────────────────────────────────────────────────────────
+
                 gender = line.get("gender") or characters.get(name, {}).get("gender", "female")
                 out = work_dir / f"scene_{sn:03d}_dialogue_{i}.wav"
                 self.segmenter.synthesize_full(

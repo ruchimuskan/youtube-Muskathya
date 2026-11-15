@@ -115,6 +115,7 @@ class StoryGenerator:
 - Natural emotional Hindi, not translated English
 - Pronounce-friendly sentences for TTS
 - Include call_to_action field in Hindi
+- CRITICAL: narration must NOT repeat or quote the dialogue lines. Narration sets the scene context; dialogue speaks the character's exact words. Never put a character's spoken words inside the narration field — that causes double audio.
 """
 
         prompt = f"""Write a completely original {req.genre} story for YouTube.

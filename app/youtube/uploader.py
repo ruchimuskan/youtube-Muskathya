@@ -1,10 +1,12 @@
 from __future__ import annotations
 
 import logging
+import time
 from datetime import datetime
 from pathlib import Path
 from typing import Any
 
+import httplib2
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
 from googleapiclient.http import MediaFileUpload
@@ -73,14 +75,32 @@ class YouTubeUploader:
         request = youtube.videos().insert(part="snippet,status", body=body, media_body=media)
         response = None
         errors: list[str] = []
-        try:
-            while response is None:
-                status, response = request.next_chunk()
-                if status:
-                    logger.info("Upload progress: %.1f%%", status.progress() * 100)
-        except HttpError as exc:
-            errors.append(str(exc))
-            raise
+        max_retries = 5
+        for attempt in range(max_retries):
+            try:
+                while response is None:
+                    status, response = request.next_chunk()
+                    if status:
+                        logger.info("Upload progress: %.1f%%", status.progress() * 100)
+                break  # success
+            except HttpError as exc:
+                errors.append(str(exc))
+                raise
+            except (TimeoutError, OSError, Exception) as exc:
+                wait = 2 ** attempt
+                logger.warning(
+                    "Upload attempt %s/%s failed (%s): %s — retrying in %ss",
+                    attempt + 1, max_retries, type(exc).__name__, exc, wait,
+                )
+                errors.append(f"attempt {attempt + 1}: {exc}")
+                if attempt == max_retries - 1:
+                    raise
+                time.sleep(wait)
+                # Rebuild youtube client + request to get a fresh connection
+                youtube = self._youtube()
+                request = youtube.videos().insert(
+                    part="snippet,status", body=body, media_body=media
+                )
 
         video_id = response["id"]
         url = f"https://www.youtube.com/watch?v={video_id}"
