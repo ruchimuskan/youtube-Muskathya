@@ -1,11 +1,12 @@
 name: Daily YouTube (IST)
 
+# Triggered accurately at 3:00 PM IST and 6:00 PM IST by cron-job.org via repository_dispatch.
+# GitHub native 'schedule' is commented out because GitHub-hosted runners delay cron by 5-7 hours
+# causing duplicate ghost runs late at night (e.g. at 21:26 and 23:50 IST).
 on:
-  schedule:
-    # 3:00 PM IST — generate + upload or queue
-    - cron: "30 9 * * *"
-    # 6:00 PM IST — publish any queued uploads when quota allows
-    - cron: "30 12 * * *"
+  # schedule:
+  #   - cron: "30 9 * * *"   # 3:00 PM IST (delayed on free GitHub runners)
+  #   - cron: "30 12 * * *"  # 6:00 PM IST (delayed on free GitHub runners)
   repository_dispatch:
     types: [daily_pipeline, upload_queue]
   workflow_dispatch:
@@ -24,7 +25,7 @@ env:
 
 jobs:
   pipeline:
-    timeout-minutes: 240
+    timeout-minutes: 120
     env:
       PIPELINE_GENERATE: "true"
       CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
@@ -82,7 +83,7 @@ jobs:
           AI_PROVIDER: cloudflare
           CLOUDFLARE_IMAGE_ENABLED: "true"
           COMFYUI_ENABLED: "false"
-          ALLOW_PLACEHOLDER_IMAGES: "false"
+          ALLOW_PLACEHOLDER_IMAGES: "true"
           EMERGENCY_STOP: ${{ vars.EMERGENCY_STOP || 'false' }}
           TIMEZONE: Asia/Kolkata
           PUBLISHING_MODE: schedule

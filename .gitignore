@@ -31,3 +31,5 @@ client_secrets.json
 token.json
 *credentials*.json
 secrets/
+data/voices/*.onnx
+data/voices/*.onnx.json

@@ -76,12 +76,14 @@ class Settings(BaseSettings):
         "oversaturated, noisy, grayscale"
     )
     image_guidance: float = 7.5
-    image_num_steps: int = 20
-    image_gen_width: int = 1024
-    image_gen_height: int = 576
+    image_num_steps: int = 15
+    image_gen_width: int = 768
+    image_gen_height: int = 432
     image_min_file_bytes: int = 40_000
-    image_max_retries: int = 3
-    allow_placeholder_images: bool = False
+    image_max_retries: int = 4
+    allow_placeholder_images: bool = True
+    # Cap scene images on cloud so Cloudflare 408s don't kill the daily upload.
+    cloud_max_scene_images: int = 12
     image_fallback_dir: Path = Path("./data/fallback_images")
     comfyui_enabled: bool = False
 

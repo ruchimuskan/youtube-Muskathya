@@ -68,10 +68,15 @@ class CloudflareImageGenerator:
         if seed is not None:
             payload["seed"] = seed
 
-        with httpx.Client(timeout=180.0) as client:
+        # Fast timeout (90s) so stuck cloud workers fail fast and retry quickly
+        with httpx.Client(timeout=httpx.Timeout(90.0, connect=20.0)) as client:
             resp = client.post(url, headers=headers, json=payload)
             if resp.status_code == 429:
-                raise RuntimeError("Cloudflare image quota exceeded")
+                raise RuntimeError("Cloudflare image quota exceeded (429)")
+            if resp.status_code == 408:
+                raise RuntimeError("Cloudflare image request timed out (408)")
+            if resp.status_code in (502, 503, 504):
+                raise RuntimeError(f"Cloudflare server error ({resp.status_code})")
             resp.raise_for_status()
             raw_bytes = self._read_image_bytes(resp)
 

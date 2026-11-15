@@ -3,6 +3,7 @@ from __future__ import annotations
 import logging
 import random
 import shutil
+import time
 from pathlib import Path
 
 import httpx
@@ -53,7 +54,13 @@ class ImageGenerator:
         overlay.save(path, quality=92)
         return path
 
-    def _fallback_asset(self, path: Path, size: tuple[int, int], prompt: str) -> Path:
+    def _fallback_asset(
+        self,
+        path: Path,
+        size: tuple[int, int],
+        prompt: str,
+        category_id: str = "moral",
+    ) -> Path:
         fallbacks = list(self.settings.image_fallback_dir.glob("*.jpg"))
         fallbacks += list(self.settings.image_fallback_dir.glob("*.png"))
         if fallbacks:
@@ -63,7 +70,16 @@ class ImageGenerator:
             with Image.open(path) as im:
                 im.convert("RGB").resize(size, Image.Resampling.LANCZOS).save(path)
             return path
-        return self._cinematic_placeholder(path, prompt, size)
+        try:
+            from app.creative.thumbnail_art_fallback import create_story_fallback_art
+
+            create_story_fallback_art(category_id, path)
+            with Image.open(path) as im:
+                im.convert("RGB").resize(size, Image.Resampling.LANCZOS).save(path)
+            return path
+        except Exception as exc:
+            logger.warning("Thumbnail art fallback failed: %s; using placeholder", exc)
+            return self._cinematic_placeholder(path, prompt, size)
 
     def _generate_cloudflare_with_retries(
         self,
@@ -75,7 +91,8 @@ class ImageGenerator:
     ) -> None:
         base_seed = char_mgr.character_seed(f"scene_{scene.get('scene_number')}")
         last_err: Exception | None = None
-        for attempt in range(self.settings.image_max_retries):
+        retries = max(self.settings.image_max_retries, 4)
+        for attempt in range(retries):
             seed = base_seed + attempt * 17
             try:
                 self.cf_images.generate(prompt, out, size, seed=seed)
@@ -83,14 +100,18 @@ class ImageGenerator:
                     return
             except Exception as exc:
                 last_err = exc
+                wait = min(4 + attempt * 4, 20)
                 logger.warning(
-                    "Cloudflare image attempt %s scene %s: %s",
+                    "Cloudflare image attempt %s/%s scene %s (sleep %ss): %s",
                     attempt + 1,
+                    retries,
                     scene.get("scene_number"),
+                    wait,
                     exc,
                 )
+                time.sleep(wait)
         raise RuntimeError(
-            f"Cloudflare image failed after {self.settings.image_max_retries} tries: {last_err}"
+            f"Cloudflare image failed after {retries} tries: {last_err}"
         )
 
     def generate_scene_images(
@@ -103,12 +124,35 @@ class ImageGenerator:
         char_mgr = CharacterManager(story)
         paths: list[Path] = []
         prompts_log: list[dict] = []
-        for scene in story.get("scenes", []):
+        scenes = story.get("scenes", [])
+        total_scenes = len(scenes)
+        category_id = story.get("content_category_id") or "moral"
+
+        # Determine which scenes should generate fresh cloud images vs reuse adjacent images
+        max_cloud = getattr(self.settings, "cloud_max_scene_images", 12)
+        generate_indices = set(range(total_scenes))
+        if max_cloud and total_scenes > max_cloud:
+            step = total_scenes / max_cloud
+            generate_indices = {int(i * step) for i in range(max_cloud)}
+            generate_indices.add(0)  # always include the opening scene
+
+        for idx, scene in enumerate(scenes):
             sn = scene.get("scene_number", len(paths) + 1)
             prompt = build_sdxl_prompt(story, scene)
             log_prompt = char_mgr.scene_prompt(scene)
             out = output_dir / f"scene_{sn:03d}.png"
             prompts_log.append({"scene_number": sn, "prompt": log_prompt, "sdxl_prompt": prompt})
+
+            # Check if this scene should reuse prior frame to respect cloud budget
+            if idx not in generate_indices and paths and is_valid_scene_image(paths[-1]):
+                logger.info(
+                    "Scene %s: reusing previous frame (cloud_max_scene_images=%s)",
+                    sn,
+                    max_cloud,
+                )
+                shutil.copy(paths[-1], out)
+                paths.append(out)
+                continue
 
             generated = False
             if self._comfy_available():
@@ -121,23 +165,30 @@ class ImageGenerator:
             if not generated and self.cf_images.is_available():
                 try:
                     self._generate_cloudflare_with_retries(prompt, out, size, char_mgr, scene)
-                    generated = True
+                    generated = is_valid_scene_image(out)
                 except Exception as exc:
                     logger.error("Cloudflare image failed scene %s: %s", sn, exc)
 
-            if not generated:
-                if self.settings.allow_placeholder_images:
-                    self._fallback_asset(out, size, prompt)
-                else:
-                    raise RuntimeError(
-                        f"Scene {sn}: real AI image required but generation failed"
+            if not generated or not is_valid_scene_image(out):
+                # Fallback strategy:
+                # 1. Reuse previous valid frame if available
+                # 2. Use fallback art / asset
+                if paths and is_valid_scene_image(paths[-1]):
+                    logger.warning(
+                        "Scene %s: reusing previous scene image after generation failure",
+                        sn,
                     )
+                    shutil.copy(paths[-1], out)
+                elif self.settings.allow_placeholder_images:
+                    self._fallback_asset(out, size, prompt, category_id=category_id)
+                else:
+                    self._fallback_asset(out, size, prompt, category_id=category_id)
 
             if not is_valid_scene_image(out):
-                if self.settings.allow_placeholder_images:
-                    self._fallback_asset(out, size, prompt)
+                if paths and is_valid_scene_image(paths[-1]):
+                    shutil.copy(paths[-1], out)
                 else:
-                    raise RuntimeError(f"Scene {sn}: generated image failed validation")
+                    self._fallback_asset(out, size, prompt, category_id=category_id)
 
             paths.append(out)
 
