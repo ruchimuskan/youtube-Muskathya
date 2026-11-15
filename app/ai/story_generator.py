@@ -221,7 +221,10 @@ Schema:
         if req.is_short:
             return story
         min_scenes = req.min_scenes or self.settings.story_min_scenes
-        scenes_needed = max(min_scenes, max(20, req.target_duration_sec // 24))
+        # Lower the bar: accept whatever the LLM gave if it's >= min_scenes.
+        # Don't demand 20+ scenes — that forces repeated expansion calls that
+        # produce malformed JSON and crash the pipeline.
+        scenes_needed = min_scenes
         scenes = story.get("scenes") or []
         if len(scenes) >= scenes_needed:
             return story
@@ -247,13 +250,34 @@ Last scenes: {scenes[-3:]}
 Return JSON:
 {{"scenes": [ ... new scenes only, scene_number continues ... ]}}
 """
-            response = self.llm.complete(expand_prompt, system=system, json_mode=True)
-            extra = self.llm.parse_json(response.text)
-            new_scenes = extra.get("scenes") or []
-            if not new_scenes:
+            try:
+                response = self.llm.complete(expand_prompt, system=system, json_mode=True)
+                extra = self.llm.parse_json(response.text)
+                new_scenes = extra.get("scenes") or []
+                if not new_scenes:
+                    logger.warning("Scene expansion attempt %s returned no scenes", attempt + 1)
+                    break
+                max_num = max(s.get("scene_number", i + 1) for i, s in enumerate(scenes))
+                for i, sc in enumerate(new_scenes):
+                    sc["scene_number"] = sc.get("scene_number") or max_num + i + 1
+                story["scenes"] = scenes + new_scenes
+            except Exception as exc:
+                logger.warning(
+                    "Scene expansion attempt %s failed (JSON parse): %s — continuing with %s scenes",
+                    attempt + 1,
+                    exc,
+                    len(scenes),
+                )
+                # Don't crash — use whatever scenes we already have.
                 break
-            max_num = max(s.get("scene_number", i + 1) for i, s in enumerate(scenes))
-            for i, sc in enumerate(new_scenes):
-                sc["scene_number"] = sc.get("scene_number") or max_num + i + 1
-            story["scenes"] = scenes + new_scenes
+
+        # Final guard: if we still don't have enough scenes, proceed anyway.
+        # A shorter video is better than no video at all.
+        final_count = len(story.get("scenes") or [])
+        if final_count < scenes_needed:
+            logger.warning(
+                "Story has %s scenes (wanted %s) — proceeding with shorter video",
+                final_count,
+                scenes_needed,
+            )
         return story
