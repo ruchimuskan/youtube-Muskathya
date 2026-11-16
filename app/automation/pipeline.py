@@ -208,8 +208,8 @@ class ContentPipeline:
             if vstreams:
                 result["resolution"] = f"{vstreams[0].get('width')}x{vstreams[0].get('height')}"
 
-            qc_min = min(target * 0.45, 90.0) if not is_short else 5
-            qc_max = max(target * 1.5, 720.0) if not is_short else 120
+            qc_min = max(600.0, target * 0.85) if not is_short else 25.0
+            qc_max = max(target * 1.35, 960.0) if not is_short else 120.0
             qc = self.qc.inspect_video(
                 final_path,
                 expected_aspect=aspect,
