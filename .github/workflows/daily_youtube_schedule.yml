@@ -78,7 +78,14 @@ jobs:
           source .venv/bin/activate
           python -m app.main init-db
           python -m app.main upload-queue || true
-          python -m app.main generate --upload --idempotency-key "gha-daily-${{ github.run_id }}"
+          python -m app.main generate --upload --idempotency-key "gha-daily-${{ github.run_id }}" 2>&1 | tee /tmp/pipeline_output.log
+          EXIT_CODE=${PIPESTATUS[0]}
+          echo "=== PIPELINE EXIT CODE: $EXIT_CODE ==="
+          if [[ $EXIT_CODE -ne 0 ]]; then
+            echo "=== LAST 50 LINES OF OUTPUT ==="
+            tail -50 /tmp/pipeline_output.log
+            exit $EXIT_CODE
+          fi
         env:
           AI_PROVIDER: cloudflare
           CLOUDFLARE_IMAGE_ENABLED: "true"
@@ -88,6 +95,10 @@ jobs:
           TIMEZONE: Asia/Kolkata
           PUBLISHING_MODE: schedule
           PIPER_LENGTH_SCALE: "1.38"
+          VIDEO_MIN_DURATION_SEC: "620"
+          VIDEO_MAX_DURATION_SEC: "900"
+          STORY_MIN_SCENES: "18"
+          STORY_MAX_SCENES: "26"
 
   upload_queue:
     timeout-minutes: 45
