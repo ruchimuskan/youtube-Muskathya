@@ -39,13 +39,14 @@ class YouTubeUploader:
         privacy: str | None = None,
         publish_at: datetime | None = None,
         thumbnail_path: Path | None = None,
+        force: bool = False,
     ) -> dict[str, Any]:
         privacy = privacy or self.settings.privacy_mode
         if self.settings.emergency_stop:
             raise RuntimeError("Emergency stop is enabled")
 
         with session_scope() as session:
-            if Repository(session).uploads_today_count() >= self.settings.max_daily_uploads:
+            if not force and Repository(session).uploads_today_count() >= self.settings.max_daily_uploads:
                 raise RuntimeError("Maximum daily uploads reached")
 
         youtube = self._youtube()

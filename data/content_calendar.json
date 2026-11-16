@@ -31,6 +31,70 @@
       "format_mode": "long",
       "status": "generating",
       "created_at": "2026-11-12T13:50:06.696662+00:00"
+    },
+    {
+      "id": 5,
+      "category_id": "indian_folk",
+      "topic": "लक्ष्मण की शक्ति: एक अनजानी कहानी",
+      "format_mode": "long",
+      "status": "generating",
+      "created_at": "2026-11-15T09:53:27.800246+00:00"
+    },
+    {
+      "id": 6,
+      "category_id": "emotional_family",
+      "topic": "माँ की दुआ और बेटी की संघर्ष: एक अनोखी कहानी",
+      "format_mode": "long",
+      "status": "generating",
+      "created_at": "2026-11-15T09:59:09.124676+00:00"
+    },
+    {
+      "id": 7,
+      "story_id": 14,
+      "status": "generated",
+      "updated_at": "2026-11-15T10:17:12.088311+00:00",
+      "category_id": "emotional_family",
+      "video_path": "output/story_014/final/final_video.mp4"
+    },
+    {
+      "id": 8,
+      "category_id": "suspense_thriller",
+      "topic": "भ्रष्टाचार का शिकार: एक डॉक्टर की क्रूर सच्चाई",
+      "format_mode": "long",
+      "status": "generating",
+      "created_at": "2026-11-15T13:31:40.342603+00:00"
+    },
+    {
+      "id": 9,
+      "category_id": "fantasy_adventure",
+      "topic": "भूले हुए खजाने का रहस्यमयी मार्गदर्शक",
+      "format_mode": "long",
+      "status": "generating",
+      "created_at": "2026-11-15T13:43:55.394252+00:00"
+    },
+    {
+      "id": 10,
+      "story_id": 16,
+      "status": "generated",
+      "updated_at": "2026-11-15T13:50:07.062092+00:00",
+      "category_id": "fantasy_adventure",
+      "video_path": "output/story_016/final/final_video.mp4"
+    },
+    {
+      "id": 11,
+      "category_id": "suspense_thriller",
+      "topic": "हाईवे पर आधी रात को लावारिस कार और डिक्की का खौफ़नाक सच",
+      "format_mode": "long",
+      "status": "generating",
+      "created_at": "2026-11-15T14:02:28.285631+00:00"
+    },
+    {
+      "id": 12,
+      "story_id": 17,
+      "status": "generated",
+      "updated_at": "2026-11-15T14:10:31.818168+00:00",
+      "category_id": "suspense_thriller",
+      "video_path": "output/story_017/final/final_video.mp4"
     }
   ]
 }

@@ -26,11 +26,12 @@ CATEGORIES: dict[str, ContentCategory] = {
         name_hi="नैतिक कहानियाँ",
         name_en="Moral Stories",
         legacy_genre="moral",
-        default_weight=0.20,
+        default_weight=0.15,
         audience="family",
         story_style=(
-            "Relatable Indian characters, clear moral problem, emotional resolution, "
-            "lesson through story not preaching. Simple natural Hindi."
+            "High-stakes moral dilemma with unexpected consequences. Character tested by tough choices, "
+            "intense conflict, meaningful twists, and lesson through raw story action, NOT preachy lecturing. "
+            "Conversational natural Hindi dialogues."
         ),
         visual_style="warm cinematic Indian illustration, relatable everyday setting",
         voice_profile="moral",
@@ -42,11 +43,12 @@ CATEGORIES: dict[str, ContentCategory] = {
         name_hi="डरावनी और रहस्यमयी कहानियाँ",
         name_en="Horror and Mystery",
         legacy_genre="horror",
-        default_weight=0.15,
+        default_weight=0.20,
         audience="adult_teens",
         story_style=(
-            "Strong suspense hook, gradual tension, atmospheric mystery, satisfying reveal. "
-            "No graphic gore; psychological horror acceptable. Hindi suspense narration."
+            "Atmospheric psychological dread, chilling mystery hook in first 10s, eerie discoveries, "
+            "escalating suspense beats every 30-45s, and a logical shocking reveal. "
+            "No cheap jump scares or cliché daayan/ghost tropes."
         ),
         visual_style="dark atmospheric cinematic, moonlight, fog, shadows, moody colors",
         voice_profile="horror",
@@ -58,9 +60,13 @@ CATEGORIES: dict[str, ContentCategory] = {
         name_hi="भावनात्मक और पारिवारिक कहानियाँ",
         name_en="Emotional and Family",
         legacy_genre="family",
-        default_weight=0.15,
+        default_weight=0.20,
         audience="family",
-        story_style="Strong relationships, natural dialogue, heartfelt moments, meaningful ending.",
+        story_style=(
+            "Deep psychological and realistic family conflict, hidden secrets, natural colloquial dialogues, "
+            "genuine emotional dilemma, and profound, unpredictable resolution. "
+            "NEVER generic mother-son melodrama or artificial tears."
+        ),
         visual_style="soft emotional lighting, Indian home or family scenes",
         voice_profile="emotional",
         audio_profile="emotional",
@@ -71,9 +77,12 @@ CATEGORIES: dict[str, ContentCategory] = {
         name_hi="प्रेरणादायक कहानियाँ",
         name_en="Inspirational",
         legacy_genre="motivational",
-        default_weight=0.10,
+        default_weight=0.05,
         audience="young_adult",
-        story_style="Relatable struggle, character growth, realistic motivation, no fake claims.",
+        story_style=(
+            "Gritty realistic Indian struggle, relentless obstacles, high stakes, hard-earned triumph, "
+            "and natural character growth. Zero fake motivation or artificial speeches."
+        ),
         visual_style="uplifting sunrise, journey, determination",
         voice_profile="motivational",
         audio_profile="inspirational",
@@ -84,9 +93,9 @@ CATEGORIES: dict[str, ContentCategory] = {
         name_hi="राजा-रानी और काल्पनिक कहानियाँ",
         name_en="Raja-Rani and Fantasy",
         legacy_genre="fantasy",
-        default_weight=0.10,
+        default_weight=0.02,
         audience="family",
-        story_style="Palace and kingdom, royal costumes, adventure conflict resolution, grand tone.",
+        story_style="Palace intrigue, political machinations, spies, tactical decisions, grand cinematic scope.",
         visual_style="Indian palace, royal attire, golden lighting, epic fantasy illustration",
         voice_profile="royal",
         audio_profile="royal",
@@ -97,7 +106,7 @@ CATEGORIES: dict[str, ContentCategory] = {
         name_hi="बच्चों और जानवरों की कहानियाँ",
         name_en="Kids and Animal",
         legacy_genre="children",
-        default_weight=0.10,
+        default_weight=0.01,
         audience="children",
         story_style="Simple Hindi, friendly tone, safe content, playful animals or kids heroes.",
         visual_style="bright colorful friendly illustration, jungle or farm",
@@ -113,7 +122,10 @@ CATEGORIES: dict[str, ContentCategory] = {
         legacy_genre="village",
         default_weight=0.10,
         audience="family",
-        story_style="Rural India, farmers, community, authentic village problems and wisdom.",
+        story_style=(
+            "Authentic rural mystery and grounded drama, land/legacy conflicts, genuine village wisdom, "
+            "sharp colloquial dialect, unpredictable twists, no cliché farmer suffering."
+        ),
         visual_style="Indian village fields, huts, sunrise, earthy tones",
         voice_profile="moral",
         audio_profile="village",
@@ -127,7 +139,7 @@ CATEGORIES: dict[str, ContentCategory] = {
         default_weight=0.05,
         audience="family",
         story_style=(
-            "Original narration inspired by Indian folklore or mythology themes; "
+            "Original narration inspired by Indian folklore themes with clever wit and tactical twists; "
             "not copying copyrighted retellings."
         ),
         visual_style="traditional Indian art inspired, temples, rivers, symbolic imagery",
@@ -140,9 +152,12 @@ CATEGORIES: dict[str, ContentCategory] = {
         name_hi="सस्पेंस और थ्रिलर",
         name_en="Suspense Thriller",
         legacy_genre="suspense",
-        default_weight=0.05,
+        default_weight=0.25,
         audience="adult",
-        story_style="Fast pacing hooks, twists, cliffhanger beats, coherent reveal.",
+        story_style=(
+            "Fast-paced neo-noir thriller, high-stakes hook in first 10s, escalating tension beats every 30-45s, "
+            "natural Hindi dialogues, multiple planted clues, mind-bending climax."
+        ),
         visual_style="high contrast thriller lighting, urban or night scenes",
         voice_profile="horror",
         audio_profile="thriller",
@@ -220,6 +235,11 @@ Audience: {category.audience}
 Story style: {category.story_style}
 Visual style: {category.visual_style}
 Safety: {"children-safe only" if category.kids_safe else "general audience, no graphic violence"}
+HIGH RETENTION DIRECTIVE:
+- Hook in first 5-10s (unexpected incident, shock dialogue, or impossible dilemma; NEVER 'Ek gaon mein...').
+- Introduce a new development or escalate tension every 30-45 seconds.
+- Realistic conversational Hindi dialogues with emotional pauses and interruptions.
+- Multiple logical twists with clues planted early; surprising and memorable climax.
 """
 
 
@@ -231,4 +251,4 @@ def format_duration_range(mode: str) -> tuple[int, int, int, int]:
         return 600, 900, 28, 45
     if mode == "compilation":
         return 600, 1200, 30, 50
-    return 360, 600, 22, 40
+    return 300, 480, 10, 16

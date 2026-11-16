@@ -30,16 +30,16 @@ class Settings(BaseSettings):
     ollama_model: str = "llama3.1:8b"
     cloudflare_account_id: str = ""
     cloudflare_api_token: str = ""
-    cloudflare_model: str = "@cf/meta/llama-3.1-8b-instruct-fast"
+    cloudflare_model: str = "@cf/meta/llama-3.3-70b-instruct-fp8-fast"
 
     default_language: Literal["hi", "en"] = "hi"
     default_genre: str = "moral"
     video_aspect_ratio: Literal["16:9", "9:16"] = "16:9"
-    video_min_duration_sec: int = 360
-    video_max_duration_sec: int = 600
+    video_min_duration_sec: int = 620
+    video_max_duration_sec: int = 900
     video_fps: int = 30
-    story_min_scenes: int = 22
-    story_max_scenes: int = 40
+    story_min_scenes: int = 18
+    story_max_scenes: int = 26
     max_daily_uploads: int = 1
     privacy_mode: Literal["private", "unlisted", "public"] = "public"
     publishing_mode: Literal["immediate", "schedule"] = "schedule"

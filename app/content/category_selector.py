@@ -170,10 +170,24 @@ class CategorySelector:
             for row in Repository(session).get_recent_lessons(10):
                 lessons.append(f"[{row.category}] {row.lesson}")
 
-        prompt = f"""You are a Hindi YouTube story strategist.
+        prompt = f"""You are an elite Indian thriller novelist, Bollywood screenplay strategist, and high-retention YouTube content creator.
 Category: {category_id} ({get_category(category_id).name_hi})
 Genre: {genre}
-Format: {"Short 30-60s" if is_short else "Long-form Hindi story video"}
+Format: {"Short 30-60s" if is_short else "Long-form Hindi story video (6-12 min)"}
+
+STRICT PROHIBITION - REJECT GENERIC CONCEPTS:
+- NO repeated poor girl/rich boy love stories.
+- NO generic mother-son sacrifice melodrama.
+- NO predictable village moral lectures.
+- NO repetitive ghost/daayan stories.
+- NO stories where everything is obvious from the start.
+
+CONCEPT REQUIREMENTS:
+1. Originality: Fresh Indian setting, realistic dilemma, high stakes.
+2. Cold Hook (First 10s): An unexpected incident, shocking dialogue, betrayal, or impossible situation.
+3. Suspense & Twists: Must have strong potential for mid-story revelations and an unpredictable climax.
+4. Relatability: Believable character motivations, natural Hindi speaking tone.
+5. Thumbnail Potential: High curiosity gap that makes viewers stop scrolling.
 
 Channel lessons:
 {chr(10).join(lessons) if lessons else "None yet"}
@@ -183,21 +197,22 @@ Avoid repeating these recent titles:
 
 User topic hint (must follow if set): {topic_hint or "none"}
 
-Pick ONE original topic with measurable search interest in Hindi audience.
-Theme should match category {category_id} and hint when provided.
+Pick ONE original, highly addictive topic for category {category_id}.
 JSON only:
 {{
-  "main_topic": "Hindi topic title",
-  "audience_hook": "...",
-  "search_intent": "...",
+  "main_topic": "Gripping Hindi topic title",
+  "audience_hook": "Shocking 0-10 second opening incident or dialogue",
+  "conflict_and_stakes": "Central dilemma and what characters stand to lose",
+  "planned_twist": "Unexpected but logical plot reversal with planted clues",
+  "search_intent": "Audience curiosity driver",
   "suggested_keywords": ["..."],
-  "competition_note": "...",
-  "uniqueness_note": "...",
-  "content_gap": "..."
+  "competition_note": "How this beats generic YouTube stories",
+  "uniqueness_note": "Why this is original and addictive",
+  "content_gap": "Fresh angle not covered by cliché channels"
 }}"""
         response = self.llm.complete(
             prompt,
-            system="Original ideas only. Valid JSON.",
+            system="You are an elite Indian story creator and YouTube retention specialist. Output valid JSON only. 100% original, unpredictable concepts only.",
             json_mode=True,
         )
         return self.llm.parse_json(response.text)

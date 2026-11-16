@@ -5,15 +5,13 @@
   "narrator_gender_override": null,
   "visual_style_override": null,
   "category_weights": {
-    "moral": 0.2,
-    "horror_mystery": 0.15,
-    "emotional_family": 0.15,
-    "inspirational": 0.1,
-    "raja_rani_fantasy": 0.1,
-    "kids_animal": 0.1,
-    "village_life": 0.1,
+    "suspense_thriller": 0.25,
+    "horror_mystery": 0.20,
+    "emotional_family": 0.20,
+    "moral": 0.15,
+    "village_life": 0.10,
     "folk_mythology": 0.05,
-    "suspense_thriller": 0.05
+    "inspirational": 0.05
   },
   "enabled_categories": [
     "moral",

@@ -39,10 +39,27 @@ class TopicResearcher:
                 lessons.append(f"[{row.category}] {row.lesson}")
 
         avoid = avoid_topics or []
-        prompt = f"""You are a YouTube content strategist for original story channels.
+        prompt = f"""You are an elite Indian thriller novelist, Bollywood screenplay strategist, and high-retention YouTube content creator.
 Language: {language}
 Genre: {genre}
-Format: {"YouTube Short (under 60s narration)" if is_short else "Long-form (5-12 min narration)"}
+Format: {"YouTube Short (under 60s narration)" if is_short else "Long-form (6-12 min narration)"}
+
+STRICT PROHIBITION - REJECT GENERIC CONCEPTS:
+- NO repeated poor girl/rich boy love stories.
+- NO generic mother-son sacrifice melodrama.
+- NO predictable village moral lectures.
+- NO repetitive ghost/daayan stories.
+- NO stories where everything is obvious from the start.
+
+CONCEPT SELECTION PROCESS:
+Secretly evaluate 10 distinct story premises. Grade each on:
+1. Originality (fresh Indian setting and unique dilemma)
+2. Curiosity & Cold Hook (first 10 seconds shock factor)
+3. Suspense (escalating tension every 30-45s)
+4. Emotional impact (relatable characters with believable stakes)
+5. Twist potential (foreshadowed, mind-bending resolution)
+6. Thumbnail potential (high click-through-rate visual intrigue)
+Select ONLY the single most unusual, compelling, and addictive concept.
 
 Past lessons from this channel (apply them):
 {chr(10).join(lessons) if lessons else "None yet."}
@@ -52,17 +69,20 @@ Topics to avoid (already used recently):
 
 Respond with JSON only:
 {{
-  "main_topic": "...",
-  "audience_hook": "...",
-  "search_intent": "...",
-  "content_gap": "...",
+  "main_topic": "Gripping Hindi title/concept",
+  "audience_hook": "Shocking 0-10 second opening incident or dialogue",
+  "conflict_and_stakes": "Central dilemma and what the characters stand to lose",
+  "planned_twist": "Unexpected but logical plot reversal with planted clues",
+  "search_intent": "Why viewers are drawn to this theme",
+  "content_gap": "What makes this different from generic YouTube stories",
   "suggested_keywords": ["...", "..."],
-  "uniqueness_note": "why this is original"
+  "thumbnail_idea": "Intense visual moment for thumbnail",
+  "uniqueness_note": "Why this is original and addictive"
 }}"""
 
         response = self.llm.complete(
             prompt,
-            system="Output valid JSON only. Create 100% original ideas; never copy existing creators.",
+            system="You are an elite Indian story creator and YouTube retention specialist. Output valid JSON only. 100% original, unpredictable concepts only.",
             json_mode=True,
         )
         return self.llm.parse_json(response.text)

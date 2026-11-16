@@ -71,11 +71,34 @@ class StoryGenerator:
 
     def _hindi_system(self) -> str:
         return (
-            "You are an expert Hindi cinematic storyteller for YouTube with high audience retention. "
-            "Stories must feel alive: conflict, surprise, emotion, dialogue — never flat preaching. "
-            "All narration, dialogue, titles, hook and ending MUST be in natural Hindi (Devanagari). "
-            "visual_description and image_prompt MUST be in English for AI image generation. "
-            "Output only valid JSON."
+            "You are an ELITE Indian story creator, thriller novelist, Bollywood screenplay writer, "
+            "and YouTube audience-retention expert. Your mission is to create original, emotionally powerful, "
+            "unpredictable, cinematic Hindi stories that viewers cannot stop watching until the very end.\n\n"
+            "ABSOLUTE RULE: NO BORING STORIES.\n"
+            "NEVER generate:\n"
+            "- Repeated poor girl/rich boy love stories.\n"
+            "- Generic mother-son sacrifice stories.\n"
+            "- Predictable village moral stories.\n"
+            "- Repetitive ghost/daayan stories.\n"
+            "- Stories where everything is obvious from the beginning.\n"
+            "- Unnecessary descriptions and long introductory filler.\n"
+            "- Artificial emotional dialogues.\n"
+            "- Predictable happy endings.\n\n"
+            "CORE PILLARS:\n"
+            "1. COLD OPEN HOOK (First 5-10s): Start directly with a shocking, mysterious, emotional, or unexpected incident, "
+            "dialogue, betrayal, impossible situation, or disturbing secret. NEVER start with boring introductions like "
+            "'Ek gaon mein ek aadmi rehta tha' or weather/setting descriptions.\n"
+            "2. RETENTION PACING: Introduce a new development or tension beat every 30-45 seconds. Avoid repetitive scenes. "
+            "Every scene must reveal something, increase tension, or develop a character. Use natural cliffhangers at scene transitions.\n"
+            "3. NATURAL HINDI DIALOGUES: Write in conversational, simple, everyday natural Hindi (Devanagari). Characters must sound "
+            "like real Indian people with distinct speaking styles, emotional pauses ('...'), realistic reactions, and interruptions. "
+            "Never make characters speak like formal textbook narrators. Create original dialogue suited to your characters.\n"
+            "4. EMOTIONAL DEPTH & TWISTS: Every major twist must have clues planted earlier. Avoid predictable endings. The final "
+            "revelation should make viewers rethink earlier scenes. Morally complicated decisions and unexpected connections over forced fairy-tale endings.\n"
+            "5. NARRATION VS DIALOGUE: Write narration separately from character dialogues. Narration sets the scene context; dialogue "
+            "speaks the character's exact words. Never put a character's spoken words inside the narration field (that causes double audio in TTS).\n"
+            "6. AI IMAGE VISUALS: visual_description and image_prompt MUST be in English for AI image generation.\n"
+            "Output valid JSON only."
         )
 
     def generate(self, req: StoryGenerationRequest) -> dict[str, Any]:
@@ -92,21 +115,19 @@ class StoryGenerator:
                 "Total 30-60 seconds spoken. Short Hindi lines. "
                 "visual_description under 30 English words."
             )
-        elif req.target_duration_sec >= 300:
-            minutes_lo = max(req.target_duration_sec // 60, 6)
-            minutes_hi = max(minutes_lo + 2, min(10, (req.target_duration_sec + 59) // 60))
+        else:
             scene_cap = f"{min_scenes} to {max_scenes} scenes"
             brevity = (
-                f"Target {minutes_lo}-{minutes_hi} minutes of Hindi narration (~{req.target_duration_sec}s audio). "
-                f"Use {scene_cap} with ONE distinct visual per scene. "
-                "Each scene 28-45 seconds of spoken Hindi (7-9 natural sentences, min ~140 Devanagari chars). "
-                "Structure: hook → intro → development → emotional/suspense beat → climax → ending → CTA. "
-                "Never repeat the same visual_description. "
-                "visual_description: detailed English, Indian setting when relevant."
+                f"Target ~{req.target_duration_sec}s of audio across {scene_cap}. "
+                "Each scene MUST have 4-6 rich, dramatic Hindi narration sentences (min ~150 Devanagari characters) "
+                "PLUS realistic, intense dialogue exchanges between characters with emotional pauses. "
+                "Structure: cold open hook → escalating conflict → unexpected clues/twists → high tension climax → shocking ending. "
+                "Never write 1-sentence childish summaries. Write vivid cinematic descriptions and gritty, realistic dialogues. "
+                "CRITICAL COMPLETENESS RULE: The story MUST be 100% complete — full beginning, middle, AND end. "
+                "NEVER leave the story unfinished, unresolved, or abruptly cut. "
+                "The final scene MUST include a clear, satisfying resolution or a powerful shocking revelation. "
+                "Viewer must feel the story is fully told when it ends — no cliffhangers without resolution, no open loops."
             )
-        else:
-            scene_cap = "6 to 10 scenes"
-            brevity = "Keep visual_description under 40 English words per scene."
 
         lang_rules = ""
         if req.language == "hi":
@@ -116,6 +137,7 @@ class StoryGenerator:
 - Pronounce-friendly sentences for TTS
 - Include call_to_action field in Hindi
 - CRITICAL: narration must NOT repeat or quote the dialogue lines. Narration sets the scene context; dialogue speaks the character's exact words. Never put a character's spoken words inside the narration field — that causes double audio.
+- STRICT ANTI-REPETITION MANDATE: Every single scene MUST have unique, progressing narration (at least 3-5 sentences) and distinct character dialogue. NEVER repeat the same phrase, sentence, or dialogue across scenes. Each scene must advance the story with new information or conflict.
 """
 
         prompt = f"""Write a completely original {req.genre} story for YouTube.
@@ -140,16 +162,42 @@ Apply lessons:
 Requirements:
 - Use {scene_cap}
 - {brevity}
-- RETENTION (critical for YouTube reach):
-  * Open with a curiosity gap in hook_opening — a shocking question or unfinished moment
-  * Each scene ends with a mini-cliffhanger or emotional turn (viewer wants the next scene)
-  * At least one unexpected twist or reversal before climax — avoid predictable moral lectures
-  * Use vivid dialogue between characters, not only narrator monologue
-  * Relatable Indian settings, names, and emotions; avoid generic filler lines
-  * Title must spark click curiosity in Hindi without clickbait lies
-- Strong hook in first 5-10 seconds (pattern interrupt)
+- ABSOLUTE RULE: NO BORING STORIES:
+  * NEVER generate: repeated poor girl/rich boy love stories, generic mother-son sacrifice stories, predictable village moral stories, repetitive ghost/daayan stories, obvious endings.
+  * Every new story must have a unique concept, conflict, setting, believable characters, and an unpredictable ending.
+- 1. STORY OPENING (First 5-10 seconds):
+  * Scene 1 MUST start directly with a shocking, mysterious, emotional, or unexpected incident, dialogue, betrayal, or impossible situation.
+  * First 5-10 seconds must trigger immediate curiosity and hook the audience.
+  * NEVER start with boring introductions like "Ek gaon mein ek aadmi rehta tha" or generic setting/weather descriptions.
+- 2. AUDIENCE RETENTION & PACING:
+  * Introduce a new development or tension beat approximately every 30-45 seconds.
+  * Avoid repetitive scenes and unnecessary filler explanations.
+  * Every scene must reveal new information, increase tension, or develop a character.
+  * End scenes with natural cliffhangers at important transitions.
+- 3. NATURAL CONVERSATIONAL HINDI DIALOGUES:
+  * Conversational, simple, everyday natural Hindi (Devanagari). Characters must sound like real Indian people.
+  * Give every character a distinct speaking style with emotional pauses ('...'), realistic reactions, and interruptions.
+  * Avoid overly formal or textbook Hindi (BAD: "माता जी, मैं आपसे एक महत्वपूर्ण विषय पर चर्चा करना चाहता हूँ।" -> GOOD: "माँ... तुमसे एक बात कहनी थी। लेकिन समझ नहीं आ रहा कैसे बोलूँ।").
+  * Do not make characters speak like narrators. Never summarize an emotional scene that should be shown through dialogue.
+- 4. LOGICAL TWISTS & CLIMAX:
+  * Multiple meaningful twists. Every major twist must have clues planted earlier.
+  * Avoid predictable endings. The final revelation should make viewers rethink earlier scenes.
+  * Prefer shocking revelations, unexpected connections, or morally complicated decisions over forced happy endings.
+- 5. NARRATION AND TTS AUDIO SEPARATION:
+  * Narration sets the scene context; dialogue speaks the character's exact words.
+  * CRITICAL: Never put a character's spoken words inside the narration field — that causes double audio in TTS.
+  * Distinct speaker labels in dialogue array with gender and Devanagari lines.
+- 6. GOLDEN RULE:
+  * Write stories that people WANT to finish, not stories that merely fill duration.
+  * Originality, emotional connection, suspense, natural dialogue, and audience retention are paramount.
+- 7. STORY COMPLETENESS (NON-NEGOTIABLE):
+  * The story MUST be 100% complete — full beginning, middle, AND satisfying end.
+  * NEVER stop mid-story. NEVER leave plot threads unresolved.
+  * The final scene must clearly resolve the central conflict or deliver the shocking final revelation.
+  * A viewer watching till the last second must feel the story is fully told — not cut off, not rushed.
+  * Budget scenes properly: use early scenes for hook/setup, middle scenes for tension/twists, last 3-4 scenes for climax and resolution.
 - Character visual descriptions for consistency across all scenes
-- Children-safe if genre is children
+- Children-safe only if genre is children
 - Original work only
 - Valid JSON only
 
@@ -243,7 +291,11 @@ Schema:
             )
             expand_prompt = f"""Continue this Hindi story JSON. Add at least {needed} NEW scenes.
 Keep characters consistent. Language rules: Hindi Devanagari narration/dialogue; English visual_description.
-Each new scene needs 5-7 Hindi sentences (~22-30s spoken), dialogue where possible, and a retention hook at the scene end.
+HIGH-RETENTION RULES:
+- Every new scene must introduce a new development or escalate tension (30-45s retention beat).
+- Natural conversational Hindi dialogue (real Indian phrasing, emotional pauses '...', no textbook formality).
+- Narration sets scene context; dialogue carries spoken lines (never quote dialogue inside narration).
+- End each scene with a suspense hook or emotional turn towards the climax.
 Existing title: {story.get("title")}
 Characters: {story.get("characters")}
 Last scenes: {scenes[-3:]}
@@ -255,8 +307,20 @@ Return JSON:
                 response = self.llm.complete(expand_prompt, system=system, json_mode=True)
                 extra = self.llm.parse_json(response.text)
                 new_scenes = extra.get("scenes") or []
+                # Deduplicate: do not accept scenes that repeat existing narration or dialogue
+                existing_narrs = {s.get("narration", "").strip() for s in scenes}
+                unique_new = []
+                for sc in new_scenes:
+                    narr = sc.get("narration", "").strip()
+                    if narr and narr in existing_narrs:
+                        continue
+                    if narr:
+                        existing_narrs.add(narr)
+                    unique_new.append(sc)
+                new_scenes = unique_new
+
                 if not new_scenes:
-                    logger.warning("Scene expansion attempt %s returned no scenes", attempt + 1)
+                    logger.warning("Scene expansion attempt %s returned no unique scenes", attempt + 1)
                     break
                 max_num = max(s.get("scene_number", i + 1) for i, s in enumerate(scenes))
                 for i, sc in enumerate(new_scenes):
