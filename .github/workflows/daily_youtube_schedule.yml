@@ -82,8 +82,8 @@ jobs:
           EXIT_CODE=${PIPESTATUS[0]}
           echo "=== PIPELINE EXIT CODE: $EXIT_CODE ==="
           if [[ $EXIT_CODE -ne 0 ]]; then
-            echo "=== LAST 50 LINES OF OUTPUT ==="
-            tail -50 /tmp/pipeline_output.log
+            echo "=== LAST 60 LINES OF OUTPUT ==="
+            tail -60 /tmp/pipeline_output.log
             exit $EXIT_CODE
           fi
         env:
@@ -97,8 +97,32 @@ jobs:
           PIPER_LENGTH_SCALE: "1.38"
           VIDEO_MIN_DURATION_SEC: "620"
           VIDEO_MAX_DURATION_SEC: "900"
-          STORY_MIN_SCENES: "18"
-          STORY_MAX_SCENES: "26"
+
+      - name: Save pipeline cache on success
+        if: success()
+        uses: actions/cache/save@v4
+        with:
+          path: |
+            data
+            output
+          key: ${{ steps.cachekey.outputs.key }}
+
+      - name: Auto-retry on failure (via dispatch)
+        if: failure()
+        env:
+          GH_DISPATCH_PAT: ${{ secrets.GH_DISPATCH_PAT }}
+        run: |
+          if [[ -n "$GH_DISPATCH_PAT" ]]; then
+            echo "Pipeline failed — scheduling auto-retry in 10 min..."
+            sleep 600
+            curl -s -X POST \
+              -H "Authorization: Bearer $GH_DISPATCH_PAT" \
+              -H "Accept: application/vnd.github+json" \
+              https://api.github.com/repos/${{ github.repository }}/dispatches \
+              -d '{"event_type":"daily_pipeline"}' && echo "Retry dispatched." || echo "Retry dispatch failed."
+          else
+            echo "GH_DISPATCH_PAT not set — skipping auto-retry. Set it in GitHub Secrets."
+          fi
 
   upload_queue:
     timeout-minutes: 45
@@ -148,3 +172,4 @@ jobs:
           EMERGENCY_STOP: ${{ vars.EMERGENCY_STOP || 'false' }}
           TIMEZONE: Asia/Kolkata
           PIPER_LENGTH_SCALE: "1.38"
+

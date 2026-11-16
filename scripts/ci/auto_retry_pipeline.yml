@@ -1,0 +1,31 @@
+name: Auto-Retry Failed Pipeline
+
+# Triggers when "Daily YouTube (IST)" workflow fails
+# Waits 10 min and retries once automatically
+on:
+  workflow_run:
+    workflows: ["Daily YouTube (IST)"]
+    types: [completed]
+
+jobs:
+  retry:
+    if: github.event.workflow_run.conclusion == 'failure'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Wait 10 minutes before retry
+        run: sleep 600
+
+      - name: Trigger pipeline retry via repository_dispatch
+        env:
+          GH_DISPATCH_PAT: ${{ secrets.GH_DISPATCH_PAT }}
+        run: |
+          if [[ -z "$GH_DISPATCH_PAT" ]]; then
+            echo "GH_DISPATCH_PAT not set — cannot auto-retry"
+            exit 0
+          fi
+          curl -X POST \
+            -H "Authorization: Bearer $GH_DISPATCH_PAT" \
+            -H "Accept: application/vnd.github+json" \
+            https://api.github.com/repos/${{ github.repository }}/dispatches \
+            -d '{"event_type":"daily_pipeline","client_payload":{"retry":true}}'
+          echo "Retry triggered successfully"
