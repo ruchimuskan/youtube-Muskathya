@@ -281,18 +281,18 @@ Schema:
         if len(scenes) >= scenes_needed:
             return story
 
-        for attempt in range(3):
+        for attempt in range(6):
             scenes = story.get("scenes") or []
             if len(scenes) >= scenes_needed:
                 break
-            needed = scenes_needed - len(scenes)
+            needed = min(scenes_needed - len(scenes), 4)
             logger.info(
-                "Expanding story attempt %s: %s -> need %s more scenes",
+                "Expanding story attempt %s: currently %s scenes -> adding %s more scenes",
                 attempt + 1,
                 len(scenes),
                 needed,
             )
-            expand_prompt = f"""Continue this Hindi story JSON. Add at least {needed} NEW scenes.
+            expand_prompt = f"""Continue this Hindi story JSON. Add exactly {needed} NEW scenes.
 Keep characters consistent. Language rules: Hindi Devanagari narration/dialogue; English visual_description.
 HIGH-RETENTION RULES:
 - Every new scene MUST have an extensive, deep narration paragraph of 8-12 sentences (MINIMUM 400-500 Devanagari characters) plus realistic dialogue.
@@ -384,7 +384,7 @@ Return JSON:
         )
 
         import json
-        batch_size = 4
+        batch_size = 3
         for i in range(0, len(scenes), batch_size):
             batch = scenes[i : i + batch_size]
             needs_expansion = [s for s in batch if len(s.get("narration", "").strip()) < 380]
