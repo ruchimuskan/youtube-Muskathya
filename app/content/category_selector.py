@@ -96,10 +96,13 @@ class CategorySelector:
         lo, hi, min_sc, max_sc = format_duration_range(mode)
         if mode == "short":
             return mode, random.randint(lo, hi), 1, True, min_sc, max_sc
-        target = random.randint(
-            max(lo, settings.video_min_duration_sec if mode == "long" else lo),
-            min(hi, settings.video_max_duration_sec if mode == "long" else hi),
-        )
+        # Respect global min/max from settings but guard against min > max crash
+        eff_lo = max(lo, settings.video_min_duration_sec if mode == "long" else lo)
+        eff_hi = min(hi, settings.video_max_duration_sec if mode == "long" else hi)
+        if eff_lo > eff_hi:
+            # settings min/max inconsistent with format range — use format range directly
+            eff_lo, eff_hi = lo, hi
+        target = random.randint(eff_lo, eff_hi)
         return mode, target, 1, False, min_sc, max_sc
 
     def select(self, *, topic_hint: str | None = None) -> CategorySelection:
