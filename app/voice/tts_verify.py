@@ -16,6 +16,7 @@ class TTSVerifyResult:
     expected_chars: int
     duration_sec: float
     min_expected_duration: float
+    max_expected_duration: float
     transcribed: str | None
     missing_prefix: bool
     notes: list[str]
@@ -26,6 +27,7 @@ class TTSVerifyResult:
             "expected_chars": self.expected_chars,
             "duration_sec": self.duration_sec,
             "min_expected_duration": self.min_expected_duration,
+            "max_expected_duration": self.max_expected_duration,
             "transcribed": self.transcribed,
             "missing_prefix": self.missing_prefix,
             "notes": self.notes,
@@ -37,6 +39,12 @@ def min_duration_for_text(text: str, *, sec_per_char: float = 0.055) -> float:
     return max(0.35, n * sec_per_char)
 
 
+def max_duration_for_text(text: str, *, sec_per_char: float = 0.18) -> float:
+    """Maximum reasonable spoken duration for text before it is deemed a loop/stutter bug."""
+    n = max(devanagari_char_count(text), len(text.split()) * 3)
+    return max(4.0, n * sec_per_char + 2.0)
+
+
 def verify_segment(
     original_text: str,
     wav_path: Path,
@@ -46,7 +54,13 @@ def verify_segment(
 ) -> TTSVerifyResult:
     notes: list[str] = []
     min_dur = min_duration_for_text(original_text)
-    passed = duration_sec >= min_dur * 0.65 and wav_path.exists() and wav_path.stat().st_size > 500
+    max_dur = max_duration_for_text(original_text)
+    passed = (
+        duration_sec >= min_dur * 0.65
+        and duration_sec <= max_dur
+        and wav_path.exists()
+        and wav_path.stat().st_size > 500
+    )
 
     missing_prefix = False
     if transcribed and get_settings().tts_use_whisper_verify:
@@ -62,12 +76,18 @@ def verify_segment(
     if duration_sec < min_dur * 0.65:
         passed = False
         notes.append(f"audio too short for text (got {duration_sec:.2f}s, need ~{min_dur:.2f}s)")
+    elif duration_sec > max_dur:
+        passed = False
+        notes.append(
+            f"audio abnormally long / VITS loop stutter detected (got {duration_sec:.2f}s, max allowed {max_dur:.2f}s)"
+        )
 
     return TTSVerifyResult(
         passed=passed,
         expected_chars=devanagari_char_count(original_text),
         duration_sec=duration_sec,
         min_expected_duration=min_dur,
+        max_expected_duration=max_dur,
         transcribed=transcribed,
         missing_prefix=missing_prefix,
         notes=notes,

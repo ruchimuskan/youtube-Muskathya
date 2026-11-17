@@ -1,0 +1,247 @@
+{
+  "title": "हाईवे माइलस्टोन 84: डिक्की का मुसाफ़िर",
+  "synopsis": "आधी रात को हाईवे पर गश्त कर रहे सिपाही विक्रम को एक लावारिस कार की डिक्की में अधमरा आदमी मिलता है, जो होश में आते ही विक्रम पर ही जानलेवा हमले का आरोप लगाता है। जैसे-जैसे रात गहराती है, एक चौंकाने वाला सच सामने आता है।",
+  "content_category_id": "suspense_thriller",
+  "genre": "suspense",
+  "language": "hi",
+  "target_duration_sec": 300,
+  "characters": [
+    {
+      "name": "विक्रम",
+      "gender": "male",
+      "age_group": "30-35",
+      "description": "Indian police constable, khaki uniform, serious and focused eyes, short hair",
+      "voice_id_hint": "hi_IN-pratham-medium"
+    },
+    {
+      "name": "सौरभ",
+      "gender": "male",
+      "age_group": "40-45",
+      "description": "Bruised Indian man in dark torn jacket, scared expressions, sharp cunning eyes",
+      "voice_id_hint": "hi_IN-pratham-medium"
+    },
+    {
+      "name": "दयाल",
+      "gender": "male",
+      "age_group": "50-55",
+      "description": "Senior Indian police inspector, heavy build, mustached, stern authoritative face",
+      "voice_id_hint": "hi_IN-pratham-medium"
+    }
+  ],
+  "character_references": [
+    {
+      "name": "विक्रम",
+      "gender": "male",
+      "age_group": "30-35",
+      "description": "Indian police constable, khaki uniform, serious and focused eyes, short hair",
+      "voice_id_hint": "hi_IN-pratham-medium"
+    },
+    {
+      "name": "सौरभ",
+      "gender": "male",
+      "age_group": "40-45",
+      "description": "Bruised Indian man in dark torn jacket, scared expressions, sharp cunning eyes",
+      "voice_id_hint": "hi_IN-pratham-medium"
+    },
+    {
+      "name": "दयाल",
+      "gender": "male",
+      "age_group": "50-55",
+      "description": "Senior Indian police inspector, heavy build, mustached, stern authoritative face",
+      "voice_id_hint": "hi_IN-pratham-medium"
+    }
+  ],
+  "scenes": [
+    {
+      "scene_number": 1,
+      "story_beat": "hook",
+      "duration_estimate_sec": 30,
+      "visual_description": "Cinematic night shot on a lonely misty Indian highway, an abandoned black SUV on the shoulder, a police officer with flashlight opening the car trunk, dramatic shadows, cold blue and amber street lighting, 8k",
+      "image_prompt": "Cinematic night shot on a lonely misty Indian highway, an abandoned black SUV on the shoulder, a police officer with flashlight opening the car trunk, dramatic shadows, cold blue and amber street lighting, 8k",
+      "narration": "रात के सवा दो बजे, हाईवे के घने कोहरे में एक लावारिस काली गाड़ी खड़ी थी। सिपाही विक्रम राठौड़ ने जैसे ही डिक्की का लॉक खोला... अंदर रस्सियों से बंधा एक अधमरा आदमी तड़प रहा था। उसके गले पर नायलॉन की रस्सी का फंदा था और चेहरे पर ताज़ा खून के निशान थे।",
+      "dialogue": [
+        {
+          "character": "सौरभ",
+          "line": "मुझे मत मारो विक्रम... मैंने किसी को नहीं बताया कि उस बैग में क्या है!",
+          "gender": "male"
+        },
+        {
+          "character": "विक्रम",
+          "line": "शांत हो जाओ भाई... मैं पुलिस वाला हूँ। तुम्हें किसने बाँधा?",
+          "gender": "male"
+        },
+        {
+          "character": "सौरभ",
+          "line": "तू नाटक मत कर राठौड़! तेरी वर्दी पर तेरा ही नाम लिखा है... तू ही तो मुझे मारने आया था!",
+          "gender": "male"
+        }
+      ],
+      "mood": "suspense",
+      "sfx_hint": "car trunk open click, heavy breathing"
+    },
+    {
+      "scene_number": 2,
+      "story_beat": "intro",
+      "duration_estimate_sec": 35,
+      "visual_description": "Close up shot inside the police patrol van, an Indian police officer staring at his empty right hand ring finger in disbelief, dashboard emergency radio in background, gritty noir lighting",
+      "image_prompt": "Close up shot inside the police patrol van, an Indian police officer staring at his empty right hand ring finger in disbelief, dashboard emergency radio in background, gritty noir lighting",
+      "narration": "विक्रम के हाथ से टॉर्च छूटते-छूटते बची। जिस आदमी को उसने ज़िन्दगी में पहली बार देखा था, वो उसी पर हत्या की कोशिश का इल्ज़ाम लगा रहा था। सौरभ ने अपनी फटी जेब से एक चीज़ निकाली... विक्रम का पुलिस आई-कार्ड और उसके पिता की दी हुई सोने की अंगूठी।",
+      "dialogue": [
+        {
+          "character": "सौरभ",
+          "line": "ये तुम्हारी ही जेब से गिरी थी राठौड़... जब तुम मुझे घसीट रहे थे। अब मुकरोगे कैसे?",
+          "gender": "male"
+        },
+        {
+          "character": "विक्रम",
+          "line": "ये अंगूठी मेरी है... लेकिन तुम्हारे पास कैसे आई? आज शाम ड्यूटी से पहले मुझे किसने बेहोश किया था?",
+          "gender": "male"
+        }
+      ],
+      "mood": "suspense",
+      "sfx_hint": "radio static buzz"
+    },
+    {
+      "scene_number": 3,
+      "story_beat": "development",
+      "duration_estimate_sec": 35,
+      "visual_description": "Indian police constable looking under the back seat of his patrol van, discovering a heavy black leather bag stuffed with cash and raw diamonds, dramatic lighting, suspense atmosphere",
+      "image_prompt": "Indian police constable looking under the back seat of his patrol van, discovering a heavy black leather bag stuffed with cash and raw diamonds, dramatic lighting, suspense atmosphere",
+      "narration": "विक्रम का दिमाग सन्न रह गया। उसने तुरंत कंट्रोल रूम को वायरलेस करने की कोशिश की, लेकिन वैन के वायरलेस का तार अंदर से कटा हुआ था। सौरभ ने तंज़ कसते हुए कहा कि जिस बैग के लिए ये खेल हुआ है... वो कहीं और नहीं, बल्कि खुद विक्रम की पुलिस वैन के अंदर छुपा है।",
+      "dialogue": [
+        {
+          "character": "सौरभ",
+          "line": "अपनी ही वैन की पिछली सीट देखो विक्रम... पूरा एक करोड़ का माल वहीं रखा है!",
+          "gender": "male"
+        },
+        {
+          "character": "विक्रम",
+          "line": "मेरे ही विभाग के किसी अपने ने मुझे फंसाने के लिए यह पूरा जाल बुना है...",
+          "gender": "male"
+        }
+      ],
+      "mood": "suspense",
+      "sfx_hint": "zipper opening sound"
+    },
+    {
+      "scene_number": 4,
+      "story_beat": "suspense",
+      "duration_estimate_sec": 35,
+      "visual_description": "Highway in the dead of night, distant flashing red and blue police beacon lights approaching in fog, Indian constable with gun drawn aiming at the injured suspect",
+      "image_prompt": "Highway in the dead of night, distant flashing red and blue police beacon lights approaching in fog, Indian constable with gun drawn aiming at the injured suspect",
+      "narration": "दूर हाईवे के मोड़ से सायरन बजाती हुई दो पुलिस गाड़ियाँ तेज़ी से आ रही थीं। सौरभ अचानक हँसने लगा और उसके चेहरे का सारा डर गायब हो गया। उसने बताया कि यह पूरी साज़िश किसी और ने नहीं... बल्कि विक्रम के चौकी इंचार्ज इंस्पेक्टर दयाल ने रची है ताकि सारा माल खुद रख सके और विक्रम को एनकाउंटर में मार दे।",
+      "dialogue": [
+        {
+          "character": "सौरभ",
+          "line": "यमराज का सायरन बज चुका है राठौड़... दयाल आ रहा है तुम्हें रास्ते से हटाने!",
+          "gender": "male"
+        },
+        {
+          "character": "विक्रम",
+          "line": "दयाल सर? लेकिन उन्हें कैसे पता चला कि मैं यहाँ हूँ?",
+          "gender": "male"
+        },
+        {
+          "character": "सौरभ",
+          "line": "क्योंकि स्क्रिप्ट ही उन्होंने लिखी है मेरे भाई... मोहरा तुम बने हो!",
+          "gender": "male"
+        }
+      ],
+      "mood": "suspense",
+      "sfx_hint": "distant police siren"
+    },
+    {
+      "scene_number": 5,
+      "story_beat": "suspense",
+      "duration_estimate_sec": 35,
+      "visual_description": "Extreme close up of mud on shoes and an antique vintage HMT wristwatch with a small trishul symbol engraved, intense cinematic thriller detail, night lighting",
+      "image_prompt": "Extreme close up of mud on shoes and an antique vintage HMT wristwatch with a small trishul symbol engraved, intense cinematic thriller detail, night lighting",
+      "narration": "लेकिन तभी विक्रम की नज़र सौरभ के जूतों पर पड़ी... जूतों पर चिपचिपी लाल मिट्टी लगी थी, जो केवल शहर के पुराने रेलवे श्मशान में मिलती थी। और सबसे बड़ा झटका तब लगा जब विक्रम ने सौरभ की कलाई पर बंधी पुरानी विंटेज घड़ी देखी। उस घड़ी पर वही त्रिशूल खुदा था, जो दस साल पहले शहीद हुए विक्रम के पिता की घड़ी पर था।",
+      "dialogue": [
+        {
+          "character": "विक्रम",
+          "line": "तू सौरभ नहीं है... तू सुनील जोशी है! दस साल पहले मेरे पिता को गोली मारने वाला भगोड़ा!",
+          "gender": "male"
+        },
+        {
+          "character": "सौरभ",
+          "line": "तुझे... तुझे कैसे पता चला? दयाल ने तो कहा था तुझे कुछ याद नहीं!",
+          "gender": "male"
+        }
+      ],
+      "mood": "dramatic",
+      "sfx_hint": "watch ticking sound"
+    },
+    {
+      "scene_number": 6,
+      "story_beat": "climax",
+      "duration_estimate_sec": 40,
+      "visual_description": "Corrupt senior Indian police inspector stepping out of a police vehicle with a drawn gun, confronting a calm constable in the headlights, intense Mexican standoff, rain fog noir",
+      "image_prompt": "Corrupt senior Indian police inspector stepping out of a police vehicle with a drawn gun, confronting a calm constable in the headlights, intense Mexican standoff, rain fog noir",
+      "narration": "गाड़ी रुकते ही इंस्पेक्टर दयाल हाथ में पिस्तौल लिए उतरा। उसके चेहरे पर लालच और कपट साफ़ झलक रहा था। दयाल ने कहा कि विक्रम की बीमार बेटी के इलाज के पैसे पेंशन फंड से दे दिए जाएँगे, बस वो चुपचाप इस बैग को छोड़ दे। लेकिन विक्रम ज़रा भी नहीं डरा।",
+      "dialogue": [
+        {
+          "character": "दयाल",
+          "line": "हथियार नीचे रखो विक्रम... बहुत दुख हुआ कि एक सिपाही पैसों के लालच में स्मगलर बन गया।",
+          "gender": "male"
+        },
+        {
+          "character": "विक्रम",
+          "line": "दयाल सर... उस बैग की साइड वाली ज़िप खोलकर देखिए। उसमें हीरे नहीं हैं।",
+          "gender": "male"
+        },
+        {
+          "character": "दयाल",
+          "line": "क्या बकवास कर रहा है तू?",
+          "gender": "male"
+        }
+      ],
+      "mood": "dramatic",
+      "sfx_hint": "gun cocking sound"
+    },
+    {
+      "scene_number": 7,
+      "story_beat": "climax",
+      "duration_estimate_sec": 40,
+      "visual_description": "High tech audio transmitter device glowing with blinking green LED lights inside an open leather bag, surrounded by police commandos arresting a corrupt officer in handcuffs, cinematic night",
+      "image_prompt": "High tech audio transmitter device glowing with blinking green LED lights inside an open leather bag, surrounded by police commandos arresting a corrupt officer in handcuffs, cinematic night",
+      "narration": "दयाल ने जैसे ही बैग खोला, अंदर हीरों की जगह विजिलेंस का लाइव सैटेलाइट ट्रांसमीटर रखा था, जिसकी हरी बत्ती ब्लिंक कर रही थी। पिछले दो घंटे में इस हाईवे पर बोला गया एक-एक शब्द और दयाल का कबूलनामा सीधे एंटी-करप्शन हेडक्वार्टर रिकॉर्ड हो चुका था। पीछे से विजिलेंस की चार गाड़ियों ने दयाल और सुनील दोनों को घेर लिया।",
+      "dialogue": [
+        {
+          "character": "विक्रम",
+          "line": "दस साल से मैं इस रात का इंतज़ार कर रहा था दयाल सर। शिकारी आप नहीं, मोहरा मैं खुद बना था!",
+          "gender": "male"
+        },
+        {
+          "character": "दयाल",
+          "line": "तूने... तूने विजिलेंस को पहले ही बुला लिया था?",
+          "gender": "male"
+        }
+      ],
+      "mood": "dramatic",
+      "sfx_hint": "handcuffs clicking sound"
+    },
+    {
+      "scene_number": 8,
+      "story_beat": "ending",
+      "duration_estimate_sec": 30,
+      "visual_description": "Golden sunrise on Indian highway, a police constable standing by his patrol van wearing his father's vintage watch, peaceful determined expression, morning light, 8k",
+      "image_prompt": "Golden sunrise on Indian highway, a police constable standing by his patrol van wearing his father's vintage watch, peaceful determined expression, morning light, 8k",
+      "narration": "भोर की पहली किरण फूटते ही सुनील और दयाल दोनों को हथकड़ियों में ले जाया गया। विक्रम ने सुनील की कलाई से अपने पिता की पुरानी घड़ी खोलकर अपनी कलाई पर बाँध ली। घड़ी की टिक-टिक में दस साल का दर्द और अधूरा इंसाफ़ आज पूरा हो चुका था। विक्रम ने वैन स्टार्ट की और वायरलेस पर रिपोर्ट दी... हाईवे अब बिल्कुल साफ़ है।",
+      "dialogue": [
+        {
+          "character": "विक्रम",
+          "line": "कंट्रोल रूम... पेट्रोलिंग वैन नंबर 7 रिपोर्टिंग। हाईवे माइलस्टोन 84... अब पूरी तरह साफ़ है।",
+          "gender": "male"
+        }
+      ],
+      "mood": "suspense",
+      "sfx_hint": "engine start, police radio beep"
+    }
+  ],
+  "hook_opening": "रात के सवा दो बजे, लावारिस कार की डिक्की से निकला एक अधमरा आदमी... और बोला 'मुझे उस सिपाही से बचाओ!'",
+  "ending": "दस साल बाद पिता की घड़ी वापस विक्रम की कलाई पर थी... और हाईवे हमेशा के लिए साफ़ हो चुका था।",
+  "call_to_action": "अगर आपको यह सस्पेंस थ्रिलर कहानी पसंद आई, तो वीडियो को लाइक करें और ऐसी ही रोमांचक कहानियों के लिए चैनल को सब्सक्राइब करें।",
+  "content_rating": "general",
+  "synthetic_disclosure_needed": true
+}

@@ -95,6 +95,23 @@
       "updated_at": "2026-11-15T14:10:31.818168+00:00",
       "category_id": "suspense_thriller",
       "video_path": "output/story_017/final/final_video.mp4"
+    },
+    {
+      "id": 13,
+      "category_id": "horror_mystery",
+      "topic": "आखिरी कॉल: एक अनजान नंबर का खौफ़नाक सच",
+      "format_mode": "long",
+      "status": "generating",
+      "created_at": "2026-11-16T10:01:12.688361+00:00"
+    },
+    {
+      "id": 14,
+      "story_id": 19,
+      "status": "published",
+      "updated_at": "2026-11-16T10:10:40.436584+00:00",
+      "category_id": "horror_mystery",
+      "video_path": "output/story_019/final/final_video.mp4",
+      "youtube_url": "https://www.youtube.com/watch?v=baafGLI9cus"
     }
   ]
 }

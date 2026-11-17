@@ -35,11 +35,11 @@ class Settings(BaseSettings):
     default_language: Literal["hi", "en"] = "hi"
     default_genre: str = "moral"
     video_aspect_ratio: Literal["16:9", "9:16"] = "16:9"
-    video_min_duration_sec: int = 620
-    video_max_duration_sec: int = 900
+    video_min_duration_sec: int = 480
+    video_max_duration_sec: int = 720
     video_fps: int = 30
-    story_min_scenes: int = 18
-    story_max_scenes: int = 26
+    story_min_scenes: int = 8
+    story_max_scenes: int = 12
     max_daily_uploads: int = 1
     privacy_mode: Literal["private", "unlisted", "public"] = "public"
     publishing_mode: Literal["immediate", "schedule"] = "schedule"
@@ -59,7 +59,7 @@ class Settings(BaseSettings):
     piper_voice_en_male: str = "en_US-lessac-medium"
     piper_voice_en_female: str = "en_US-amy-medium"
     narrator_gender: Literal["male", "female"] = "male"
-    piper_length_scale: float = 1.32
+    piper_length_scale: float = 1.08
     allow_say_fallback: bool = False
     tts_use_whisper_verify: bool = False
 

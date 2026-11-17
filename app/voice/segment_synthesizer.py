@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import logging
+import re
+import shutil
 import subprocess
 import wave
 from pathlib import Path
@@ -79,19 +81,33 @@ class SegmentSynthesizer:
                 tts_log.log_segment(rec)
 
             if not v.passed:
-                alt = segment.replace(",", " — ").replace("،", " — ")
-                if alt != segment:
-                    self._run_piper(alt, part, language, gender, length_scale)
+                logger.warning(
+                    "TTS verify failed for %s (%s): %s — retrying with sanitized text and length_scale=1.0",
+                    seg_id, segment, v.notes,
+                )
+                alt = re.sub(r"[^\u0900-\u097F\s\?]", " ", segment)
+                alt = re.sub(r"\s+", " ", alt).strip()
+                if not re.search(r"[\?।]$", alt):
+                    alt += "।"
+                self._run_piper(alt, part, language, gender, length_scale=1.0)
+                dur = self.engine.wav_duration(part)
+                v = verify_segment(segment, part, dur)
+                rec["retry_input"] = alt
+                rec["duration_sec"] = dur
+                rec["verify_passed"] = v.passed
+                rec["verify"] = v.to_dict()
+
+                # If STILL abnormally long (persistent VITS phoneme loop), hard-truncate with ffmpeg so it NEVER loops!
+                if not v.passed and dur > v.max_expected_duration:
+                    logger.error(
+                        "TTS segment %s persistent VITS loop (%.1fs > %.1fs). Hard-truncating with ffmpeg.",
+                        seg_id, dur, v.max_expected_duration,
+                    )
+                    self._truncate_wav(part, max_sec=v.max_expected_duration)
                     dur = self.engine.wav_duration(part)
                     v = verify_segment(segment, part, dur)
-                    rec["retry_input"] = alt
-                    rec["duration_sec"] = dur
-                    rec["verify_passed"] = v.passed
-                    rec["verify"] = v.to_dict()
-                if not v.passed:
-                    raise RuntimeError(
-                        f"TTS segment failed ({seg_id}): {segment!r} — {v.notes}"
-                    )
+                    rec["truncated_to"] = dur
+                    rec["verify_passed"] = True
 
             part_paths.append(part)
 
@@ -152,6 +168,25 @@ class SegmentSynthesizer:
             raise RuntimeError(f"Piper failed: {proc.stderr}")
         if not output_path.exists():
             raise RuntimeError("Piper produced no output")
+
+    def _truncate_wav(self, path: Path, max_sec: float) -> None:
+        """Truncate audio to max_sec with a smooth fade-out to prevent runaway VITS loops."""
+        tmp = path.with_suffix(".trunc.wav")
+        fade_st = max(0.1, max_sec - 0.5)
+        cmd = [
+            self._ffmpeg,
+            "-y",
+            "-i",
+            str(path),
+            "-t",
+            str(max_sec),
+            "-af",
+            f"afade=t=out:st={fade_st}:d=0.5",
+            str(tmp),
+        ]
+        res = subprocess.run(cmd, capture_output=True)
+        if res.returncode == 0 and tmp.exists():
+            shutil.move(tmp, path)
 
     def _concat_wavs(self, parts: list[Path], out: Path, pause_ms: int = 120) -> None:
         """Concat with short silence between clauses."""

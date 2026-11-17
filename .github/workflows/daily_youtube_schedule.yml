@@ -94,9 +94,9 @@ jobs:
           EMERGENCY_STOP: ${{ vars.EMERGENCY_STOP || 'false' }}
           TIMEZONE: Asia/Kolkata
           PUBLISHING_MODE: schedule
-          PIPER_LENGTH_SCALE: "1.38"
-          VIDEO_MIN_DURATION_SEC: "620"
-          VIDEO_MAX_DURATION_SEC: "900"
+          PIPER_LENGTH_SCALE: "1.08"
+          VIDEO_MIN_DURATION_SEC: "480"
+          VIDEO_MAX_DURATION_SEC: "780"
 
       - name: Save pipeline cache on success
         if: success()

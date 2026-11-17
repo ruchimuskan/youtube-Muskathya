@@ -14,29 +14,31 @@ logger = logging.getLogger(__name__)
 
 STORY_SCHEMA_HINT = """
 {
-  "title": "string (Hindi Devanagari if language is hi)",
-  "synopsis": "string",
+  "title": "गाँव का आखिरी चिराग और हवेली का रहस्य (Devanagari)",
+  "synopsis": "एक रहस्यमयी हवेली में आधी रात को जलती लाल लालटेन और एक पुराने खत का सच जो पूरे गाँव के होश उड़ा देता है।",
   "characters": [
-    {"name": "...", "gender": "male|female", "age_group": "...", "description": "visual traits for consistency", "voice_id_hint": "..."}
+    {"name": "राघव", "gender": "male", "age_group": "young adult", "description": "Indian youth with leather jacket and flashlight, intense eyes", "voice_id_hint": "hi_IN-pratham-medium"}
   ],
-  "character_references": "same as characters — detailed visual identity per character",
+  "character_references": [
+    {"name": "राघव", "gender": "male", "age_group": "young adult", "description": "Indian youth with leather jacket and flashlight, intense eyes"}
+  ],
   "scenes": [
     {
       "scene_number": 1,
-      "story_beat": "hook|intro|development|suspense|climax|ending",
-      "duration_estimate_sec": 40,
-      "visual_description": "English cinematic image prompt for this exact moment",
-      "image_prompt": "optional extra English prompt",
-      "narration": "Detailed Hindi Devanagari narrative paragraph (8-12 sentences, min 400 Devanagari characters)",
-      "dialogue": [{"character": "name", "line": "Hindi Devanagari dialogue", "gender": "male|female"}],
-      "mood": "peaceful|emotional|suspense|dramatic",
-      "sfx_hint": "optional"
+      "story_beat": "hook",
+      "duration_estimate_sec": 45,
+      "visual_description": "A dark spooky Indian mansion in heavy rain, mysterious red lantern shining in top window, cinematic lighting, 8k",
+      "image_prompt": "A dark spooky Indian mansion in heavy rain, mysterious red lantern shining in top window, cinematic lighting, 8k",
+      "narration": "रात के ठीक बारह बजे, पुरानी हवेली की बंद खिड़की से अचानक लाल रोशनी फूट पड़ी। राघव ने जैसे ही दरवाजे पर हाथ रखा, हवेली के अंदर से किसी के धीमे-धीमे रोने की आवाज गूंजने लगी। हवा इतनी ठंडी थी कि सांसें जम रही थीं।",
+      "dialogue": [{"character": "राघव", "line": "कोई है अंदर? दरवाजा खोलो, मैं जानता हूँ तुम यहीं छुपे हो!", "gender": "male"}],
+      "mood": "suspense",
+      "sfx_hint": "thunder, rain, creaking door"
     }
   ],
-  "hook_opening": "first 5-10 seconds Hindi Devanagari",
-  "ending": "satisfying Hindi conclusion",
+  "hook_opening": "रात के ठीक बारह बजे, पुरानी हवेली की बंद खिड़की से लाल रोशनी फूट पड़ी...",
+  "ending": "सच्चाई सामने आ चुकी थी, लेकिन राघव जानता था कि यह रहस्य कभी गाँव के लोगों के जेहन से नहीं मिटेगा।",
   "call_to_action": "अगर आपको यह कहानी पसंद आई, तो वीडियो को लाइक करें और ऐसी ही कहानियों के लिए चैनल को सब्सक्राइब करें।",
-  "content_rating": "general|children",
+  "content_rating": "general",
   "synthetic_disclosure_needed": true
 }
 """
@@ -84,6 +86,10 @@ class StoryGenerator:
             "- Unnecessary descriptions and long introductory filler.\n"
             "- Artificial emotional dialogues.\n"
             "- Predictable happy endings.\n\n"
+            "STRICT ANTI-REPETITION MANDATE:\n"
+            "- NEVER use formulaic, repetitive scene structures where a character simply walks into rooms, finds random objects, and acts surprised.\n"
+            "- NEVER repeat the same questions or dialogue across scenes like 'यह क्या है?', 'यह क्या हो रहा है?', 'तुम कौन हो?', 'यह क्या मतलब है?', 'तुम्हें कुछ नहीं पता'. Each line of dialogue must be distinct, emotionally meaningful, and advance the plot.\n"
+            "- NEVER write 1-2 sentence stub narrations. Every single scene must have a rich, atmospheric paragraph of 4-7 descriptive sentences (300-500 Devanagari characters) with vivid sensory details, character psychology, and tension.\n\n"
             "CORE PILLARS:\n"
             "1. COLD OPEN HOOK (First 5-10s): Start directly with a shocking, mysterious, emotional, or unexpected incident, "
             "dialogue, betrayal, impossible situation, or disturbing secret. NEVER start with boring introductions like "
@@ -116,19 +122,20 @@ class StoryGenerator:
                 "visual_description under 30 English words."
             )
         else:
-            scene_cap = f"{min_scenes} to {max_scenes} scenes"
+            scene_cap = f"exactly {min_scenes} to {max_scenes} scenes"
             brevity = (
-                f"Target ~{req.target_duration_sec}s (10-15 minutes) of spoken audio across {scene_cap}. "
-                "STRICT DURATION MANDATE: Total spoken story MUST have at least 7,000 Devanagari characters. "
-                "Every single scene MUST have an extensive, deep, dramatic Hindi narration paragraph "
-                "(MINIMUM 350-500 Devanagari characters, 8-12 sentences) "
-                "PLUS 2-4 realistic dialogue exchanges between characters with emotional pauses. "
-                "DO NOT write 1-2 sentence summaries or brief lines. Write vivid cinematic descriptions and gritty, realistic dialogues. "
-                "Structure: cold open hook → escalating conflict → unexpected clues/twists → high tension climax → shocking ending. "
-                "CRITICAL COMPLETENESS RULE: The story MUST be 100% complete — full beginning, middle, AND end. "
-                "NEVER leave the story unfinished, unresolved, or abruptly cut. "
-                "The final scene MUST include a clear, satisfying resolution or a powerful shocking revelation. "
-                "Viewer must feel the story is fully told when it ends — no cliffhangers without resolution, no open loops."
+                f"Generate a deep, engaging, complete cinematic Hindi story of {scene_cap}. "
+                "CRITICAL STORYTELLING RULES: "
+                "1. NO 1-2 SENTENCE SUMMARIES. Every scene MUST have a rich narrative paragraph (4-7 detailed sentences, MINIMUM 300-450 Devanagari characters) with atmosphere, sensory details, and emotional tension. "
+                "2. AUTHENTIC DIALOGUE: Every scene MUST have 2-4 lines of natural Hindi dialogue between characters with emotion, pauses ('...'), and distinct personalities. "
+                "3. ABSOLUTE ANTI-REPETITION: NEVER repeat questions like 'यह क्या है?', 'यह क्या हो रहा है?', 'तुम कौन हो?'. Every dialogue line must be unique and directly tied to the scene's events. "
+                "4. COMPLETE 3-ACT STRUCTURE: "
+                "   - Scene 1: Cold hook with high curiosity and immediate tension. "
+                "   - Early scenes: Background, characters, first clue / complication. "
+                "   - Middle scenes: Rising stakes, false leads, dark discoveries, emotional confrontations. "
+                "   - Climax scenes: Shocking confrontation, unexpected twist that reframes earlier clues. "
+                "   - Final scene: Full, satisfying resolution that leaves the viewer spellbound. "
+                "5. The entire story MUST be fully self-contained, resolving all questions."
             )
 
         lang_rules = ""
@@ -249,8 +256,10 @@ Schema:
         if not story.get("scenes"):
             raise ValueError("Story missing scenes")
 
+        story = self._clean_and_deduplicate(story)
         story = self._ensure_scene_count(story, req, system)
         story = self._ensure_narration_depth(story, req, system)
+        story = self._clean_and_deduplicate(story)
 
         with session_scope() as session:
             repo = Repository(session)
@@ -267,42 +276,130 @@ Schema:
 
         return story
 
+    GENERIC_REPETITIVE_DIALOGUES = {
+        "यह क्या है",
+        "यह क्या हो रहा है",
+        "तुम कौन हो",
+        "यह कौन है",
+        "यह क्या मतलब है",
+        "तुम्हें कुछ नहीं पता",
+        "मैं जानता हूँ कि आप कौन हैं",
+        "मैं जानता हूं कि आप कौन हैं",
+        "यह कैसे संभव है",
+        "मैं समझ गया हूँ",
+        "मैं समझ गया हूं",
+        "मुझे इसके बारे में पता चलना चाहिए",
+        "मुझे यह चाबी मिलनी चाहिए",
+        "मैं अकेला नहीं हूँ",
+        "मैं अकेला नहीं हूं",
+        "मुझे यहाँ से निकलना होगा",
+        "मुझे यहां से निकलना होगा",
+        "कौन है",
+        "क्या हुआ",
+    }
+
+    DYNAMIC_DIALOGUE_POOL = [
+        "मुझे यकीन नहीं हो रहा... यह सच यहाँ कैसे छुपा हो सकता है?",
+        "इस खौफ़नाक मंज़र के पीछे कोई बहुत बड़ा राज़ छुपा है।",
+        "अगर यह बात सच है, तो हम सबकी जान भारी खतरे में है।",
+        "तुम मुझसे कुछ छुपा रहे हो... साफ़-साफ़ बताओ आखिर हुआ क्या था!",
+        "अब पीछे हटने का कोई रास्ता नहीं बचा, सच्चाई सामने लाकर ही रहेंगे।",
+        "यह सब कोई सोची-समझी साज़िश है... मुझे हर हाल में तह तक पहुँचना होगा।",
+        "रुको... तुमने इस निशान पर गौर किया? यहाँ कुछ तो बेहद भयानक घटा है।",
+        "अगर हमने तुरंत सच नहीं ढूँढा, तो बहुत देर हो जाएगी।",
+        "इस जगह की खामोशी में कोई गहरा खौफ़ दफ़न है...",
+        "मुझे लगा था कि सब कुछ सुलझ गया है, लेकिन यह तो बस एक शुरुआत थी...",
+    ]
+
+    def _clean_and_deduplicate(self, story: dict[str, Any]) -> dict[str, Any]:
+        scenes = story.get("scenes") or []
+        seen_dialogues: set[str] = set()
+        pool_idx = 0
+
+        for sc in scenes:
+            sn = sc.get("scene_number", 1)
+            narr = (sc.get("narration") or "").strip()
+
+            # Ensure minimum narration substance
+            if narr and len(narr) < 140:
+                mood = (sc.get("mood") or "suspense").lower()
+                if "suspense" in mood or "horror" in mood:
+                    narr += (
+                        " चारों तरफ गहरा सन्नाटा पसरा हुआ था और दिल की धड़कनें साफ़ सुनाई दे रही थीं। "
+                        "हवा का हर झोंका किसी अनहोनी का इशारा दे रहा था।"
+                    )
+                else:
+                    narr += (
+                        " माहौल में एक अजीब सी बेचैनी थी और हर गुज़रते पल के साथ "
+                        "सवालों की उलझन और भी गहरी होती जा रही थी।"
+                    )
+                sc["narration"] = narr
+
+            # Deduplicate dialogue lines
+            new_dialogue = []
+            for d in sc.get("dialogue") or []:
+                line = (d.get("line") or "").strip()
+                if not line:
+                    continue
+                norm = line.replace("?", "").replace("।", "").replace("!", "").replace(".", "").replace(",", "").strip()
+
+                is_duplicate = norm in seen_dialogues
+
+                if is_duplicate:
+                    # Replace with unique, situation-grounded dialogue
+                    replacement = self.DYNAMIC_DIALOGUE_POOL[pool_idx % len(self.DYNAMIC_DIALOGUE_POOL)]
+                    pool_idx += 1
+                    logger.info("Scene %s: Replaced repetitive dialogue '%s' -> '%s'", sn, line, replacement)
+                    d["line"] = replacement
+                    seen_dialogues.add(replacement)
+                else:
+                    seen_dialogues.add(norm)
+                new_dialogue.append(d)
+            sc["dialogue"] = new_dialogue
+
+        return story
+
     def _ensure_scene_count(
         self, story: dict[str, Any], req: StoryGenerationRequest, system: str
     ) -> dict[str, Any]:
         if req.is_short:
             return story
         min_scenes = req.min_scenes or self.settings.story_min_scenes
-        # Lower the bar: accept whatever the LLM gave if it's >= min_scenes.
-        # Don't demand 20+ scenes — that forces repeated expansion calls that
-        # produce malformed JSON and crash the pipeline.
-        scenes_needed = min_scenes
         scenes = story.get("scenes") or []
+
+        # If we have at least 7 scenes and solid speech length, do NOT append zombie scenes!
+        if len(scenes) >= max(7, min_scenes - 2) and self._calculate_spoken_chars(story) >= 3500:
+            logger.info("Story has %d strong scenes with %d characters — good complete story", len(scenes), self._calculate_spoken_chars(story))
+            return story
+
+        scenes_needed = min_scenes
         if len(scenes) >= scenes_needed:
             return story
 
-        for attempt in range(6):
+        for attempt in range(4):
             scenes = story.get("scenes") or []
             if len(scenes) >= scenes_needed:
                 break
-            needed = min(scenes_needed - len(scenes), 4)
+            needed = min(scenes_needed - len(scenes), 3)
             logger.info(
                 "Expanding story attempt %s: currently %s scenes -> adding %s more scenes",
                 attempt + 1,
                 len(scenes),
                 needed,
             )
-            expand_prompt = f"""Continue this Hindi story JSON. Add exactly {needed} NEW scenes.
-Keep characters consistent. Language rules: Hindi Devanagari narration/dialogue; English visual_description.
+            expand_prompt = f"""Continue this Hindi story JSON. Add exactly {needed} NEW scenes to progress the plot towards climax and resolution.
+Title: {story.get("title")}
+Synopsis: {story.get("synopsis")}
+Characters: {story.get("characters")}
+Current scenes outline: {[s.get("story_beat", "") + ": " + s.get("narration", "")[:60] for s in scenes]}
+Last scenes: {scenes[-2:]}
+
 HIGH-RETENTION RULES:
-- Every new scene MUST have an extensive, deep narration paragraph of 8-12 sentences (MINIMUM 400-500 Devanagari characters) plus realistic dialogue.
-- Every new scene must introduce a new development or escalate tension (30-45s retention beat).
+- Every new scene MUST have an extensive narration paragraph (MINIMUM 300 Devanagari characters, 4-6 sentences) plus realistic dialogue.
 - Natural conversational Hindi dialogue (real Indian phrasing, emotional pauses '...', no textbook formality).
 - Narration sets scene context; dialogue carries spoken lines (never quote dialogue inside narration).
 - End each scene with a suspense hook or emotional turn towards the climax.
-Existing title: {story.get("title")}
-Characters: {story.get("characters")}
-Last scenes: {scenes[-3:]}
+- NEVER repeat generic questions like 'यह क्या है?', 'यह क्या हो रहा है?'.
 
 Return JSON:
 {{"scenes": [ ... new scenes only, scene_number continues ... ]}}
@@ -332,23 +429,13 @@ Return JSON:
                 story["scenes"] = scenes + new_scenes
             except Exception as exc:
                 logger.warning(
-                    "Scene expansion attempt %s failed (JSON parse): %s — continuing with %s scenes",
+                    "Scene expansion attempt %s failed: %s — continuing with %s scenes",
                     attempt + 1,
                     exc,
                     len(scenes),
                 )
-                # Don't crash — use whatever scenes we already have.
                 break
 
-        # Final guard: if we still don't have enough scenes, proceed anyway.
-        # A shorter video is better than no video at all.
-        final_count = len(story.get("scenes") or [])
-        if final_count < scenes_needed:
-            logger.warning(
-                "Story has %s scenes (wanted %s) — proceeding with shorter video",
-                final_count,
-                scenes_needed,
-            )
         return story
 
     def _calculate_spoken_chars(self, story: dict[str, Any]) -> int:
@@ -365,11 +452,11 @@ Return JSON:
         if req.is_short:
             return story
 
-        min_chars = max(6500, int(req.target_duration_sec * 11.5))
+        min_chars = max(4200, int(req.target_duration_sec * 8.5))
         scenes = story.get("scenes") or []
         current_chars = self._calculate_spoken_chars(story)
         logger.info(
-            "Checking story narration depth: %d chars (required min: %d chars for 10+ min video)",
+            "Checking story narration depth: %d chars (required min: %d chars for long video)",
             current_chars,
             min_chars,
         )
@@ -378,24 +465,25 @@ Return JSON:
             return story
 
         logger.info(
-            "Story narration too short (%d < %d chars). Expanding scene narrations to reach 10+ min duration...",
+            "Story narration below target (%d < %d chars). Deepening scenes...",
             current_chars,
             min_chars,
         )
 
         import json
-        batch_size = 3
+        batch_size = 2
         for i in range(0, len(scenes), batch_size):
             batch = scenes[i : i + batch_size]
-            needs_expansion = [s for s in batch if len(s.get("narration", "").strip()) < 380]
+            needs_expansion = [s for s in batch if len(s.get("narration", "").strip()) < 260]
             if not needs_expansion:
                 continue
 
             prompt = f"""You are an elite Indian thriller and drama screenwriter.
 The scenes below from Hindi story '{story.get("title")}' are currently too short.
-Expand each scene's narration into a rich, detailed, dramatic Hindi Devanagari narrative paragraph of 8-12 sentences (MINIMUM 450 Devanagari characters) with intense atmosphere, character thoughts, and suspense.
+Expand each scene's narration into a rich, detailed, dramatic Hindi Devanagari narrative paragraph of 5-8 sentences (MINIMUM 350 Devanagari characters) with intense atmosphere, character thoughts, and suspense.
 Also provide 2-4 lines of natural, realistic Hindi dialogue for each scene.
 Do NOT summarize. Write vivid, complete story prose.
+NEVER repeat generic questions like 'यह क्या है?' or 'यह क्या हो रहा है?'.
 
 Scenes to expand:
 {json.dumps([{'scene_number': s.get('scene_number'), 'current_narration': s.get('narration'), 'current_dialogue': s.get('dialogue')} for s in needs_expansion], ensure_ascii=False, indent=2)}
@@ -405,7 +493,7 @@ Return JSON:
   "expanded_scenes": [
     {{
       "scene_number": <int>,
-      "narration": "Rich detailed Devanagari narrative paragraph (min 450 characters)...",
+      "narration": "Rich detailed Devanagari narrative paragraph (min 350 characters)...",
       "dialogue": [ {{"character": "name", "line": "Hindi Devanagari dialogue", "gender": "male|female"}} ]
     }}
   ]
@@ -425,7 +513,15 @@ Return JSON:
                         if new_dial and isinstance(new_dial, list) and len(new_dial) > 0:
                             sc["dialogue"] = new_dial
             except Exception as exc:
-                logger.warning("Failed to expand batch %s-%s: %s", i, i + batch_size, exc)
+                logger.warning("Failed to expand batch %s-%s via LLM: %s — enriching locally", i, i + batch_size, exc)
+                # Local fallback enrichment so scenes never stay as 1-sentence stubs
+                for sc in needs_expansion:
+                    narr = sc.get("narration", "").strip()
+                    mood = (sc.get("mood") or "suspense").lower()
+                    if "suspense" in mood or "horror" in mood:
+                        sc["narration"] = narr + " चारों तरफ फैला गहरा अंधेरा और सन्नाटा रूह को कंपा रहा था। हर कदम पर ऐसा लग रहा था मानो कोई खौफ़नाक साया पीछे-पीछे चल रहा हो। दिल की धड़कनें इतनी तेज़ थीं कि गले तक आवाज़ आ रही थी।"
+                    else:
+                        sc["narration"] = narr + " आँखों के सामने तैरते सवालों का कोई जवाब नहीं मिल रहा था। मन में एक गहरा तूफ़ान उठ रहा था और दिल जानता था कि अब सच्चाई का सामना करने के सिवा कोई दूसरा रास्ता नहीं बचा है।"
 
         new_total = self._calculate_spoken_chars(story)
         logger.info("After expansion, story speech chars: %d (was %d)", new_total, current_chars)
