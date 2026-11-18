@@ -82,8 +82,8 @@ jobs:
           EXIT_CODE=${PIPESTATUS[0]}
           echo "=== PIPELINE EXIT CODE: $EXIT_CODE ==="
           if [[ $EXIT_CODE -ne 0 ]]; then
-            echo "=== LAST 60 LINES OF OUTPUT ==="
-            tail -60 /tmp/pipeline_output.log
+            echo "=== LAST 120 LINES OF OUTPUT ==="
+            tail -120 /tmp/pipeline_output.log
             exit $EXIT_CODE
           fi
         env:
@@ -106,23 +106,6 @@ jobs:
             data
             output
           key: ${{ steps.cachekey.outputs.key }}
-
-      - name: Auto-retry on failure (via dispatch)
-        if: failure()
-        env:
-          GH_DISPATCH_PAT: ${{ secrets.GH_DISPATCH_PAT }}
-        run: |
-          if [[ -n "$GH_DISPATCH_PAT" ]]; then
-            echo "Pipeline failed — scheduling auto-retry in 10 min..."
-            sleep 600
-            curl -s -X POST \
-              -H "Authorization: Bearer $GH_DISPATCH_PAT" \
-              -H "Accept: application/vnd.github+json" \
-              https://api.github.com/repos/${{ github.repository }}/dispatches \
-              -d '{"event_type":"daily_pipeline"}' && echo "Retry dispatched." || echo "Retry dispatch failed."
-          else
-            echo "GH_DISPATCH_PAT not set — skipping auto-retry. Set it in GitHub Secrets."
-          fi
 
   upload_queue:
     timeout-minutes: 45
@@ -171,5 +154,5 @@ jobs:
         env:
           EMERGENCY_STOP: ${{ vars.EMERGENCY_STOP || 'false' }}
           TIMEZONE: Asia/Kolkata
-          PIPER_LENGTH_SCALE: "1.38"
+          PIPER_LENGTH_SCALE: "1.08"
 

@@ -59,6 +59,9 @@ class ContentPipeline:
             raise RuntimeError("Emergency stop enabled")
 
         job_id = self.jobs.start("generate_youtube_video", idempotency_key)
+        if idempotency_key and job_id is None:
+            logger.info("Job with idempotency_key %s already executed. Skipping duplicate run.", idempotency_key)
+            return {"status": "skipped", "reason": f"idempotent duplicate {idempotency_key}", "steps": ["skipped"]}
         result: dict[str, Any] = {"steps": []}
 
         try:
