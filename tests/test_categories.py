@@ -10,7 +10,7 @@ def test_all_categories_have_weights():
 
 def test_format_duration_long():
     lo, hi, min_s, max_s = format_duration_range("long")
-    assert 600 <= lo <= 700
+    assert 300 <= lo <= 700
     assert min_s < max_s
 
 

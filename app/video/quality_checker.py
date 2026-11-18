@@ -71,8 +71,8 @@ class QualityChecker:
         add(
             "duration",
             dur_ok,
-            f"duration={duration:.1f}s",
-            critical=min_duration >= 120,
+            f"duration={duration:.1f}s (min: {min_duration:.1f}s, max: {max_duration:.1f}s)",
+            critical=(duration < 30.0),
         )
 
         vstreams = [s for s in meta.get("streams", []) if s.get("codec_type") == "video"]

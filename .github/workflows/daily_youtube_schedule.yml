@@ -95,8 +95,8 @@ jobs:
           TIMEZONE: Asia/Kolkata
           PUBLISHING_MODE: schedule
           PIPER_LENGTH_SCALE: "1.08"
-          VIDEO_MIN_DURATION_SEC: "480"
-          VIDEO_MAX_DURATION_SEC: "780"
+          VIDEO_MIN_DURATION_SEC: "300"
+          VIDEO_MAX_DURATION_SEC: "600"
 
       - name: Save pipeline cache on success
         if: success()

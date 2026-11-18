@@ -338,6 +338,10 @@ Schema:
             # Deduplicate dialogue lines
             new_dialogue = []
             for d in sc.get("dialogue") or []:
+                if isinstance(d, str):
+                    d = {"character": "पात्र", "line": d, "gender": "male"}
+                elif not isinstance(d, dict):
+                    continue
                 line = (d.get("line") or "").strip()
                 if not line:
                     continue
@@ -502,7 +506,8 @@ Return JSON:
             try:
                 res = self.llm.complete(prompt, system=system, json_mode=True)
                 data = self.llm.parse_json(res.text)
-                expanded = {s.get("scene_number"): s for s in data.get("expanded_scenes", [])}
+                items = data.get("expanded_scenes") or data.get("scenes") or []
+                expanded = {s.get("scene_number"): s for s in items if isinstance(s, dict) and s.get("scene_number")}
                 for sc in needs_expansion:
                     sn = sc.get("scene_number")
                     if sn in expanded:
@@ -512,6 +517,10 @@ Return JSON:
                         new_dial = expanded[sn].get("dialogue")
                         if new_dial and isinstance(new_dial, list) and len(new_dial) > 0:
                             sc["dialogue"] = new_dial
+                    else:
+                        # Fallback enrichment if LLM missed this scene
+                        narr = sc.get("narration", "").strip()
+                        sc["narration"] = narr + " चारों तरफ गहरा सन्नाटा और बेचैनी छाई हुई थी। दिल की धड़कनें साफ़ सुनाई दे रही थीं और हर पल कोई अनहोनी होने का अंदेशा बढ़ रहा था।"
             except Exception as exc:
                 logger.warning("Failed to expand batch %s-%s via LLM: %s — enriching locally", i, i + batch_size, exc)
                 # Local fallback enrichment so scenes never stay as 1-sentence stubs
