@@ -17,9 +17,7 @@ FALLBACK_MODELS = [
     "@cf/meta/llama-3.2-3b-instruct",
     "@cf/meta/llama-3.2-1b-instruct",
     "@cf/meta/llama-3.3-70b-instruct-fp8-fast",
-    "@cf/mistral/mistral-7b-instruct-v0.2",
     "@cf/deepseek-ai/deepseek-r1-distill-qwen-32b",
-    "@cf/qwen/qwen1.5-7b-chat-awq",
 ]
 
 
