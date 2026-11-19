@@ -73,3 +73,27 @@ def test_router_gemini_fallback():
     res = router.complete("कहानी लिखो")
     assert res.provider == "gemini"
     assert res.text == "कहानी फ्रॉम जेमिनी"
+
+
+def test_story_generator_fallback_when_llm_fails():
+    from app.ai.story_generator import StoryGenerator, StoryGenerationRequest
+
+    mock_llm = MagicMock()
+    mock_llm.complete.side_effect = RuntimeError("All Cloudflare models 429 rate limited")
+
+    gen = StoryGenerator(llm=mock_llm)
+    req = StoryGenerationRequest(
+        language="hi",
+        genre="horror_mystery",
+        target_duration_sec=360,
+        is_short=False,
+        category_id="horror_mystery",
+    )
+    story = gen.generate(req)
+    assert story is not None
+    assert len(story["scenes"]) >= 8
+    assert "रहस्य" in story["title"]
+    assert len(story["characters"]) == 2
+    for sc in story["scenes"]:
+        assert len(sc["narration"]) > 100
+        assert len(sc["dialogue"]) >= 1

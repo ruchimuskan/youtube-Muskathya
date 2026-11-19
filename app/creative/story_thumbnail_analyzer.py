@@ -82,12 +82,26 @@ Rules:
 Return JSON only matching schema:
 {ANALYSIS_SCHEMA}
 """
-        response = self.llm.complete(
-            prompt,
-            system="Valid JSON only. hindi fields in Devanagari.",
-            json_mode=True,
-        )
-        data = self.llm.parse_json(response.text)
+        try:
+            response = self.llm.complete(
+                prompt,
+                system="Valid JSON only. hindi fields in Devanagari.",
+                json_mode=True,
+            )
+            data = self.llm.parse_json(response.text)
+        except Exception as exc:
+            logger.warning("Thumbnail analyzer LLM failed: %s. Using procedural thumbnail concept.", exc)
+            data = {
+                "best_scene_number": 1,
+                "key_subject": "मुख्य पात्र",
+                "key_object": "चौंकाने वाला रहस्य",
+                "facial_expression": "हैरान और स्तब्ध",
+                "hindi_headline": (story.get("title") or "सच्चाई का खुलासा").split("|")[0].strip(),
+                "hindi_suspense": "आखिर क्या था वो सच?",
+                "color_mood": "dark cinematic high contrast",
+                "composition": "close up dramatic face with mysterious background",
+                "why_this_scene": "Highest emotional impact",
+            }
         for key in ("hindi_headline", "hindi_suspense"):
             if isinstance(data.get(key), str):
                 data[key] = data[key].replace("**", "").replace("*", "").strip()

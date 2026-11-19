@@ -225,19 +225,20 @@ Schema:
                     "\nIMPORTANT: Previous output was invalid JSON. "
                     "Return smaller JSON with fewer scenes and shorter strings."
                 )
-            response = self.llm.complete(
-                prompt + extra,
-                system=system,
-                json_mode=True,
-            )
             try:
+                response = self.llm.complete(
+                    prompt + extra,
+                    system=system,
+                    json_mode=True,
+                )
                 story = self.llm.parse_json(response.text)
                 break
             except Exception as exc:
                 last_err = exc
-                logger.warning("Story JSON parse failed (attempt %s): %s", attempt + 1, exc)
+                logger.warning("Story generation attempt %s failed: %s", attempt + 1, exc)
         if story is None:
-            raise ValueError(f"Failed to parse story JSON after retries: {last_err}") from last_err
+            logger.warning("LLM story generation failed (%s). Using procedural storytelling engine.", last_err)
+            story = self._generate_fallback_story(req, topic)
 
         story["research"] = topic
         story["content_category_id"] = req.category_id
@@ -535,3 +536,202 @@ Return JSON:
         new_total = self._calculate_spoken_chars(story)
         logger.info("After expansion, story speech chars: %d (was %d)", new_total, current_chars)
         return story
+
+    def _generate_fallback_story(self, req: StoryGenerationRequest, topic: dict[str, Any]) -> dict[str, Any]:
+        """Procedural story generator used when external AI APIs are unavailable or rate-limited."""
+        cat_id = req.category_id or "moral"
+        topic_title = topic.get("main_topic") or "अनकहा रहस्य और कर्मों का सच"
+
+        if "horror" in cat_id or "mystery" in cat_id:
+            title = topic_title if "रहस्य" in topic_title else "पुरानी हवेली का खौफ़नाक रहस्य"
+            characters = [
+                {"name": "राघव", "gender": "male", "voice_tag": "male_1"},
+                {"name": "माया", "gender": "female", "voice_tag": "female_1"},
+            ]
+            scenes = [
+                {
+                    "scene_number": 1,
+                    "visual_description": "A dense foggy forest in front of an ancient abandoned Indian mansion at midnight, lightning in the sky.",
+                    "image_prompt": "Cinematic photo of an ancient dark abandoned Indian haveli at stormy midnight, heavy rain, glowing lightning, ultra-detailed 8k",
+                    "narration": "रात के बारह बज चुके थे और मूसलाधार बारिश में पुरानी हवेली के टूटे हुए दरवाज़े हवा के थपेड़ों से लगातार खड़खड़ा रहे थे। राघव और माया अपनी गाड़ी खराब होने के बाद इस सुनसान खंडहर में पनाह लेने पहुँचे थे। चारों तरफ फैली सीलन और धूल भरी खामोशी दिल में एक अजीब सी बेचैनी घोल रही थी।",
+                    "dialogue": [
+                        {"character": "राघव", "line": "यहाँ अंदर आ जाओ माया, बाहर तूफ़ान बहुत तेज़ है।", "gender": "male"},
+                        {"character": "माया", "line": "राघव, इस जगह का माहौल कुछ ठीक नहीं लग रहा। क्या यहाँ कोई रहता है?", "gender": "female"},
+                    ],
+                },
+                {
+                    "scene_number": 2,
+                    "visual_description": "A grand abandoned hall with spiderwebs, a massive grandfather clock ticking eerily.",
+                    "image_prompt": "Ancient dusty hall inside an Indian palace, broken antique furniture, moonlight through broken windows, eerie suspenseful atmosphere",
+                    "narration": "जैसे ही दोनों हवेली के बड़े दालान में दाखिल हुए, एक भारी लोहे की घंटी की गूंज दीवारों से टकराने लगी। सालों से बंद पड़े इस खंडहर में एक पुरानी घड़ी अचानक बिना चाबी के टिक-टिक करने लगी थी। हवा में अचानक जलते हुए दीए और चमेली के तेल की खुशबू फैलने लगी।",
+                    "dialogue": [
+                        {"character": "राघव", "line": "परेशान मत हो, शायद यह पुरानी घड़ी हवा के दबाव से चल पड़ी होगी।", "gender": "male"},
+                        {"character": "माया", "line": "हवा से घड़ी चल सकती है राघव, लेकिन यह जलती हुई मोमबत्तियाँ किसने रखी हैं?", "gender": "female"},
+                    ],
+                },
+                {
+                    "scene_number": 3,
+                    "visual_description": "A dark wooden staircase leading into shadows, strange muddy footprints on the stairs.",
+                    "image_prompt": "Dramatic view of an ancient creaking wooden staircase in a dark palace, shadows stretching, cinematic moody lighting",
+                    "narration": "सीढ़ियों के पास ताज़े गीले पैरों के निशान ऊपरी मंजिल की तरफ जा रहे थे। राघव ने अपनी टॉर्च की रोशनी सीढ़ियों के अंधेरे में डाली, लेकिन रोशनी कुछ ही दूरी पर जाकर जैसे काले कोहरे में समा जाती थी। ऊपर से किसी के भारी कदमों की धीमी आहट साफ़ सुनाई दे रही थी।",
+                    "dialogue": [
+                        {"character": "माया", "line": "राघव रुको! ऊपर मत जाओ, कोई हमारा पीछा कर रहा है।", "gender": "female"},
+                        {"character": "राघव", "line": "अगर कोई है तो हमें सच जानना ही होगा, हम यहाँ छिपकर नहीं बैठ सकते।", "gender": "male"},
+                    ],
+                },
+                {
+                    "scene_number": 4,
+                    "visual_description": "A locked room with an ancient iron lock covered in mysterious red symbols.",
+                    "image_prompt": "Old wooden door with a heavy rusted padlock, mysterious red symbols, dark hallway, ominous glow",
+                    "narration": "ऊपर की मंजिल पर एक पुराना बंद कमरा था जिसके दरवाज़े पर भारी लोहे का ताला लटक रहा था। दरवाज़े के नीचे से एक हल्की नीली रोशनी बाहर झांक रही थी। कमरे के अंदर से किसी के धीमे-धीमे रोने और फुसफुसाने की दर्दनाक आवाज़ें आ रही थीं।",
+                    "dialogue": [
+                        {"character": "माया", "line": "भगवान के लिए यहाँ से वापस चलो राघव, यह कोई इंसान नहीं है!", "gender": "female"},
+                        {"character": "राघव", "line": "यह आवाज़ जानी-पहचानी लग रही है, जैसे कोई बरसों से मदद की गुहार लगा रहा हो।", "gender": "male"},
+                    ],
+                },
+                {
+                    "scene_number": 5,
+                    "visual_description": "Inside the mysterious room, a large carved wooden chest emitting a soft golden glow.",
+                    "image_prompt": "Mysterious antique wooden chest in the center of an empty room, intricate carvings, magical subtle glow, atmospheric dust motes",
+                    "narration": "राघव ने भारी धक्का देकर दरवाज़ा खोला तो कमरा बिल्कुल खाली था, सिवाय बीच में रखे एक विशाल नक्काशीदार संदूक के। संदूक के ऊपर एक पुरानी डायरी और एक तस्वीर रखी हुई थी। तस्वीर में राघव के दादाजी का चेहरा साफ़ दिखाई दे रहा था।",
+                    "dialogue": [
+                        {"character": "राघव", "line": "यह... यह तो मेरे दादाजी की तस्वीर है! उनका इस हवेली से क्या रिश्ता था?", "gender": "male"},
+                        {"character": "माया", "line": "डायरी देखो राघव, इस पर पचास साल पहले की तारीख लिखी है।", "gender": "female"},
+                    ],
+                },
+                {
+                    "scene_number": 6,
+                    "visual_description": "Close up of an old yellowed diary page with faded Hindi writing and an antique key.",
+                    "image_prompt": "Close-up of vintage yellowed journal pages with handwritten Hindi script, an ornate brass key beside it, dramatic candle lighting",
+                    "narration": "डायरी के पन्नों में दफन सच्चाई पढ़कर दोनों के रोंगटे खड़े हो गए। पचास साल पहले इसी हवेली के मालिक ने गाँव के ग़रीब किसानों का खज़ाना छिपाया था, और राघव के दादाजी ने उस खज़ाने की रक्षा का वचन दिया था। लेकिन वो खज़ाना कभी बाहर नहीं आ सका क्योंकि हवेली में आग लग गई थी।",
+                    "dialogue": [
+                        {"character": "माया", "line": "तो यह हवेली भुतहा नहीं है, यहाँ तो उन किसानों की अमानत आज भी महफ़ूज़ है!", "gender": "female"},
+                        {"character": "राघव", "line": "दादाजी का अधूरा वादा... आज मुझे हर हाल में पूरा करना होगा।", "gender": "male"},
+                    ],
+                },
+                {
+                    "scene_number": 7,
+                    "visual_description": "The open chest revealing ancestral treasures and papers meant for village schools and welfare.",
+                    "image_prompt": "Open antique chest with golden coins, deeds and ancient documents, warm lighting spreading in the room",
+                    "narration": "जैसे ही राघव ने संदूक का ताला खोला, उसमें से सोने के सिक्कों के साथ गाँव के स्कूल और ज़मीनों के असली दस्तावेज़ निकले। उसी पल हवेली का भयानक अंधेरा और खौफ़नाक सन्नाटा एक सुकून भरी शांति में बदल गया, जैसे कोई बेचैन आत्मा हमेशा के लिए आज़ाद हो गई हो।",
+                    "dialogue": [
+                        {"character": "राघव", "line": "माया, कल सुबह यह सारा खज़ाना और ज़मीनें गाँव वालों को सौंप दी जाएँगी।", "gender": "male"},
+                        {"character": "माया", "line": "तुम्हारे दादाजी की आत्मा को आज सच में शांति मिल गई राघव।", "gender": "female"},
+                    ],
+                },
+                {
+                    "scene_number": 8,
+                    "visual_description": "Early sunrise over the peaceful mansion and nearby village, warm morning rays cutting through mist.",
+                    "image_prompt": "Beautiful golden sunrise over an ancient Indian village and mansion, mist dissolving, rays of hope, cinematic wide angle",
+                    "narration": "सुबह की पहली सुनहरी किरण हवेली की खिड़कियों से अंदर आई तो सारा डर काफूर हो चुका था। जिस हवेली को लोग सालों से खौफ़ का साया समझते थे, वो दरअसल एक निष्ठावान वादे और सच्चाई की अमानत थी। राघव और माया ने मुस्कुराते हुए नई सुबह का स्वागत किया।",
+                    "dialogue": [
+                        {"character": "राघव", "line": "डर सिर्फ सच से अनजान होने का नाम है, सच सामने आते ही सब रोशन हो जाता है।", "gender": "male"},
+                        {"character": "माया", "line": "चलो, गाँव के लोगों को उनकी खुशियाँ लौटाने का समय हो गया है।", "gender": "female"},
+                    ],
+                },
+            ]
+            synopsis = "पुरानी हवेली में रात बिताने पहुँचे दो मुसाफ़िरों को खौफ़नाक सायों के पीछे एक 50 साल पुराने वादे और खज़ाने का चौंकाने वाला सच मिलता है।"
+            moral = "डर तभी तक डराता है जब तक सच सामने नहीं आता। ईमानदारी और वचन की शक्ति हर अंधेरे को मिटा देती है।"
+
+        else:
+            # Moral / Village / General
+            title = topic_title if len(topic_title) > 6 else "कर्मों का सच्चा हिसाब और अनमोल सीख"
+            characters = [
+                {"name": "माधव", "gender": "male", "voice_tag": "male_1"},
+                {"name": "सुमित्रा", "gender": "female", "voice_tag": "female_1"},
+            ]
+            scenes = [
+                {
+                    "scene_number": 1,
+                    "visual_description": "An honest potter working on clay wheel outside a humble mud house in an Indian village during golden dusk.",
+                    "image_prompt": "Humble Indian potter shaping clay pot on wooden wheel outside village hut, golden sunset light, cinematic realism, 8k",
+                    "narration": "गाँव के एक छोटे से कोने में माधव अपनी पत्नी सुमित्रा के साथ मिट्टी के बर्तन बनाकर ईमानदारी से ज़िंदगी बसर कर रहा था। माधव की बनाई मटकियों में एक खास मिठास थी, लेकिन गरीबी उसका पीछा नहीं छोड़ रही थी। फिर भी माधव कभी बेईमानी के रास्ते पर नहीं चला।",
+                    "dialogue": [
+                        {"character": "सुमित्रा", "line": "माधव, आज बाज़ार में सब बर्तन बिक गए क्या? घर में राशन खत्म होने वाला है।", "gender": "female"},
+                        {"character": "माधव", "line": "चिंता मत करो सुमित्रा, ईश्वर पर भरोसा रखो। मेहनत की कमाई में हमेशा बरकत होती है।", "gender": "male"},
+                    ],
+                },
+                {
+                    "scene_number": 2,
+                    "visual_description": "A wealthy arrogant merchant riding through the dusty village path looking down upon villagers.",
+                    "image_prompt": "Wealthy arrogant Indian landlord on decorated cart in dusty village street, villagers looking with concern, rich textures",
+                    "narration": "उसी गाँव का सबसे अमीर साहूकार धनपत राय हर किसी की मजबूरी का फायदा उठाकर उनकी ज़मीनें हड़प लेता था। धनपत का मानना था कि दुनिया में सिर्फ दौलत की कीमत होती है, इंसानियत और ईमानदारी की कोई औकात नहीं।",
+                    "dialogue": [
+                        {"character": "माधव", "line": "साहूकार जी, गाँव के गरीब किसानों का कर्ज़ थोड़ा कम कर दीजिए, सब परेशान हैं।", "gender": "male"},
+                        {"character": "सुमित्रा", "line": "इन्हें समझाने का कोई फायदा नहीं माधव, पत्थर पर पानी डालने से फूल नहीं खिलते।", "gender": "female"},
+                    ],
+                },
+                {
+                    "scene_number": 3,
+                    "visual_description": "A dusty road near the river where a leather pouch full of gold coins lies forgotten in the grass.",
+                    "image_prompt": "Old leather pouch bursting with gold coins lying on dirt pathway near riverbank, tall grass, dramatic lighting",
+                    "narration": "एक शाम जब माधव नदी किनारे चिकनी मिट्टी लेने गया, तो पगडंडी की झाड़ियों में उसे एक भारी चमड़े की थैली दिखाई दी। जब उसने थैली खोली, तो उसमें चमकती हुई सोने की अशर्फियां और साहूकार के बहीखाते के ज़रूरी कागज़ात थे।",
+                    "dialogue": [
+                        {"character": "माधव", "line": "हे भगवान! यह तो साहूकार धनपत का खोया हुआ बटुआ है, जिसमें उनकी सारी दौलत है।", "gender": "male"},
+                        {"character": "सुमित्रा", "line": "यह किसी की मेहनत की या खोई हुई चीज़ है माधव, इसे तुरंत लौटाना हमारा फ़र्ज़ है।", "gender": "female"},
+                    ],
+                },
+                {
+                    "scene_number": 4,
+                    "visual_description": "Madhav standing at the grand mansion gate of the wealthy merchant holding the leather bag.",
+                    "image_prompt": "Humble villager standing in front of grand carved wooden doors of an Indian mansion, holding leather bag, evening glow",
+                    "narration": "माधव बिना एक पल गंवाए सीधे साहूकार की हवेली पहुँचा। हवेली में मातम का माहौल था क्योंकि साहूकार का सारा खज़ाना उसी थैली में था और वह सदमे से बीमार पड़ चुका था। माधव ने आगे बढ़कर पूरी थैली साहूकार के पैरों में रख दी।",
+                    "dialogue": [
+                        {"character": "माधव", "line": "साहूकार जी, आपकी यह अमानत मुझे नदी किनारे मिली थी। संभालिए, एक भी सिक्का कम नहीं है।", "gender": "male"},
+                        {"character": "सुमित्रा", "line": "हमें आपके पैसे नहीं चाहिए, बस आप ठीक हो जाइए यही प्रार्थना है।", "gender": "female"},
+                    ],
+                },
+                {
+                    "scene_number": 5,
+                    "visual_description": "The wealthy merchant looking with wide eyes of shock and shame at the honest poor couple.",
+                    "image_prompt": "Elderly wealthy Indian merchant with tears of remorse looking at poor honest man, rich hall background, emotional depth",
+                    "narration": "साहूकार की आँखें फटी की फटी रह गईं। जिस गरीब कुम्हार को वह तुच्छ समझता था, उसी ने बिना किसी लालच के उसकी ज़िंदगी भर की कमाई बिना छुए लौटा दी थी। साहूकार के अंदर का अहंकार एक ही पल में चकनाचूर हो गया।",
+                    "dialogue": [
+                        {"character": "माधव", "line": "ईमानदारी की रोटी सूखी भले हो, लेकिन रात को चैन की नींद उसी से आती है।", "gender": "male"},
+                        {"character": "सुमित्रा", "line": "दौलत तो हाथ का मैल है, इंसान के साथ केवल उसके नेक कर्म ही जाते हैं।", "gender": "female"},
+                    ],
+                },
+                {
+                    "scene_number": 6,
+                    "visual_description": "The merchant tearing up the debt papers of all poor villagers in front of the village panchayat.",
+                    "image_prompt": "Indian village panchayat meeting under banyan tree, merchant burning debt contracts, emotional villagers clapping",
+                    "narration": "अगली सुबह साहूकार ने पूरे गाँव को बरगद के पेड़ के नीचे बुलाया। माधव की ईमानदारी ने साहूकार का दिल हमेशा के लिए बदल दिया था। उसने भरे समाज में सभी गरीब किसानों के कर्ज़ के कागज़ात फाड़ दिए और गाँव वालों की ज़मीनें वापस लौटा दीं।",
+                    "dialogue": [
+                        {"character": "माधव", "line": "साहूकार जी, आज आपने सच में असली अमीरी का मतलब समझ लिया है।", "gender": "male"},
+                        {"character": "सुमित्रा", "line": "जब दिल बड़ा हो जाए, तो पूरी दुनिया अपनी लगने लगती है।", "gender": "female"},
+                    ],
+                },
+                {
+                    "scene_number": 7,
+                    "visual_description": "Villagers celebrating together, Madhav and Sumitra honored with flower garlands.",
+                    "image_prompt": "Joyous celebration in Indian village, colorful marigold garlands, smiling villagers, festive atmosphere",
+                    "narration": "गाँव भर में खुशियों की लहर दौड़ गई। साहूकार ने माधव को गाँव के कुटीर उद्योग का मुख्य प्रबंधक बनाया और उसे गाँव के बच्चों के स्कूल की ज़िम्मेदारी सौंपी। ईमानदारी की खुशबू पूरे देहात में महक उठी थी।",
+                    "dialogue": [
+                        {"character": "माधव", "line": "देखा सुमित्रा, सच्चाई का रास्ता कठिन ज़रूर होता है, लेकिन मंज़िल बहुत खूबसूरत होती है।", "gender": "male"},
+                        {"character": "सुमित्रा", "line": "सच है माधव, अच्छे कर्मों का फल देर से सही, लेकिन मिलता ज़रूर है।", "gender": "female"},
+                    ],
+                },
+                {
+                    "scene_number": 8,
+                    "visual_description": "Madhav teaching young village children to shape clay under the golden afternoon sun, peaceful community.",
+                    "image_prompt": "Warm golden scene of potter teaching village children to make earthen lamps, smiling faces, peaceful village backdrop",
+                    "narration": "माधव के जीवन ने यह साबित कर दिया कि दौलत से इंसान बड़ा नहीं बनता, बल्कि उसकी नीयत और कर्म ही उसका असली परिचय होते हैं। जो दूसरों के लिए भलाई बोता है, उसकी ज़िंदगी में हमेशा खुशियों की फसल लहलहाती है।",
+                    "dialogue": [
+                        {"character": "माधव", "line": "हमेशा याद रखना बच्चों, सच्चाई की राह पर कभी कदम मत डगमगाना।", "gender": "male"},
+                        {"character": "सुमित्रा", "line": "नेक नीयत ही इंसान की सबसे बड़ी पूँजी है।", "gender": "female"},
+                    ],
+                },
+            ]
+            synopsis = "गरीब कुम्हार माधव को साहूकार का सोने से भरा बटुआ मिलता है। उसकी ईमानदारी साहूकार का कठोर दिल बदल देती है और पूरे गाँव की किस्मत संवर जाती है।"
+            moral = "ईमानदारी और नेक नीयत सबसे बड़ी दौलत है। अच्छे कर्म कभी व्यर्थ नहीं जाते और एक दिन दुनिया को बदलकर रख देते हैं।"
+
+        return {
+            "title": title,
+            "synopsis": synopsis,
+            "scenes": scenes,
+            "characters": characters,
+            "moral": moral,
+            "ending": "सच्चाई और अच्छाई की हमेशा जीत होती है।",
+            "call_to_action": "अगर आपको यह कहानी पसंद आई, तो वीडियो को लाइक करें और ऐसी ही प्रेरणादायक कहानियों के लिए चैनल को सब्सक्राइब करें।",
+            "story_project_id": 1,
+        }

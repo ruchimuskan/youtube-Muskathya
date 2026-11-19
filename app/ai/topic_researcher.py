@@ -80,9 +80,23 @@ Respond with JSON only:
   "uniqueness_note": "Why this is original and addictive"
 }}"""
 
-        response = self.llm.complete(
-            prompt,
-            system="You are an elite Indian story creator and YouTube retention specialist. Output valid JSON only. 100% original, unpredictable concepts only.",
-            json_mode=True,
-        )
-        return self.llm.parse_json(response.text)
+        try:
+            response = self.llm.complete(
+                prompt,
+                system="You are an elite Indian story creator and YouTube retention specialist. Output valid JSON only. 100% original, unpredictable concepts only.",
+                json_mode=True,
+            )
+            return self.llm.parse_json(response.text)
+        except Exception as exc:
+            logger.warning("Topic research LLM failed: %s. Using procedural topic.", exc)
+            return {
+                "main_topic": f"{genre.title()} रहस्यमयी घटना",
+                "audience_hook": "एक गहरा सन्नाटा और एक अनसुलझा सवाल...",
+                "conflict_and_stakes": "जीवन और मृत्यु का गहरा धर्मसंकट",
+                "planned_twist": "सच्चाई वो नहीं थी जो दिख रही थी",
+                "search_intent": "रहस्य और रोमांच की सच्ची घटना",
+                "content_gap": "Cinematic twists",
+                "suggested_keywords": [genre, "hindi story", "kahaniya"],
+                "thumbnail_idea": "A shocked expression with mysterious background",
+                "uniqueness_note": "Deep suspense plot",
+            }

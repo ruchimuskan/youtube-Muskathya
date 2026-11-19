@@ -50,8 +50,31 @@ JSON schema:
   "chapters": [{{"time": "00:00", "title": "..."}}]
 }}"""
 
-        response = self.llm.complete(prompt, system="Output JSON only.", json_mode=True)
-        return self.llm.parse_json(response.text)
+        try:
+            response = self.llm.complete(prompt, system="Output JSON only.", json_mode=True)
+            return self.llm.parse_json(response.text)
+        except Exception as exc:
+            logger.warning("SEO generation LLM failed (%s). Using procedural SEO.", exc)
+            title = story.get("title") or "हिंदी प्रेरक और रहस्यमयी कहानी"
+            return {
+                "main_topic": title,
+                "keywords": ["hindi story", "kahaniya", "moral stories in hindi", "hindi kahaniya"],
+                "long_tail_keywords": ["heart touching hindi story", "best hindi kahani 2026", "suspense kahani"],
+                "title_variations": [
+                    f"{title} | दिल छू लेने वाली हिंदी कहानी",
+                    f"{title} - सच्ची घटना पर आधारित",
+                    f"ज़रूर सुनें: {title} | Hindi Kahaniya",
+                    f"{title} (एक अनोखी दास्तान)",
+                    f"कर्मों का हिसाब: {title}",
+                ],
+                "recommended_title": f"{title} | दिल छू लेने वाली हिंदी कहानी",
+                "description": f"{title}\n\n{story.get('synopsis', 'एक दिलचस्प और दिल को छू लेने वाली हिंदी कहानी।')}\n\nअगर आपको यह कहानी पसंद आए तो लाइक और सब्सक्राइब ज़रूर करें!\n\n#HindiKahaniya #MoralStories #HindiStories",
+                "tags": ["hindi kahaniya", "hindi stories", "moral story", "kahani", "hindi kahani", "story in hindi"],
+                "hashtags": ["#HindiKahaniya", "#HindiStories", "#Kahani", "#MoralStories"],
+                "category_id": "24",
+                "playlist_suggestion": "सर्वश्रेष्ठ हिंदी कहानियाँ",
+                "chapters": [{"time": "00:00", "title": "कहानी की शुरुआत"}, {"time": "02:30", "title": "रहस्य और मोड़"}, {"time": "05:00", "title": "सीख और अंत"}],
+            }
 
     def generate_full_package(
         self,
@@ -88,8 +111,24 @@ Create promotional copy. Hindi Devanagari. No false claims. JSON:
     "competition_note": "..."
   }}
 }}"""
-        extra = self.llm.complete(prompt, system="Valid JSON only.", json_mode=True)
-        extra_data = self.llm.parse_json(extra.text)
+        try:
+            extra = self.llm.complete(prompt, system="Valid JSON only.", json_mode=True)
+            extra_data = self.llm.parse_json(extra.text)
+        except Exception as exc:
+            logger.warning("Creative SEO LLM failed (%s). Using base SEO copy.", exc)
+            extra_data = {
+                "title_selection_reason": "High CTR emotional hook",
+                "promotional_caption": f"सुनिए {story.get('title')} की यह अनोखी दास्तान...",
+                "pinned_comment": "आपको इस कहानी में कौन सा पात्र सबसे अच्छा लगा? कमेंट में ज़रूर बताएं!",
+                "hashtags_text": "#HindiKahaniya #HindiStories #StoriesInHindi",
+                "seo_report": {
+                    "primary_keyword": "hindi kahaniya",
+                    "secondary_keywords": ["moral story", "hindi story"],
+                    "search_intent": "Audience looking for emotional life lessons",
+                    "audience_fit": "General Hindi storytelling audience",
+                    "competition_note": "Authentic narrative structure",
+                },
+            }
 
         return {
             **base,
