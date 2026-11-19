@@ -213,9 +213,23 @@ JSON only:
   "uniqueness_note": "Why this is original and addictive",
   "content_gap": "Fresh angle not covered by cliché channels"
 }}"""
-        response = self.llm.complete(
-            prompt,
-            system="You are an elite Indian story creator and YouTube retention specialist. Output valid JSON only. 100% original, unpredictable concepts only.",
-            json_mode=True,
-        )
-        return self.llm.parse_json(response.text)
+        try:
+            response = self.llm.complete(
+                prompt,
+                system="You are an elite Indian story creator and YouTube retention specialist. Output valid JSON only. 100% original, unpredictable concepts only.",
+                json_mode=True,
+            )
+            return self.llm.parse_json(response.text)
+        except Exception as exc:
+            logger.warning("Topic research LLM failed: %s. Using category fallback topic.", exc)
+            return {
+                "main_topic": topic_hint or f"{category_id.replace('_', ' ').title()} रहस्यमयी घटना",
+                "audience_hook": "एक भयानक सन्नाटा और एक अनसुलझा रहस्य...",
+                "conflict_and_stakes": "जीवन और मृत्यु का गहरा धर्मसंकट",
+                "planned_twist": "सच्चाई वो नहीं थी जो सामने दिख रही थी",
+                "search_intent": "रहस्य और रोमांच की सच्ची घटना",
+                "suggested_keywords": [category_id, "hindi story", "kahaniya"],
+                "competition_note": "Original cinematic narrative",
+                "uniqueness_note": "Deep suspense plot",
+                "content_gap": "Cinematic twists",
+            }

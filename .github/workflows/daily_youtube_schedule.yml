@@ -88,6 +88,7 @@ jobs:
           fi
         env:
           AI_PROVIDER: cloudflare
+          CLOUDFLARE_MODEL: ${{ vars.CLOUDFLARE_MODEL || '@cf/meta/llama-3.1-8b-instruct' }}
           CLOUDFLARE_IMAGE_ENABLED: "true"
           COMFYUI_ENABLED: "false"
           ALLOW_PLACEHOLDER_IMAGES: "true"
