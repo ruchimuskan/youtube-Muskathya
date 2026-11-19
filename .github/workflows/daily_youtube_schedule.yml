@@ -88,12 +88,11 @@ jobs:
             exit $EXIT_CODE
           fi
         env:
-          AI_PROVIDER: ${{ vars.AI_PROVIDER || 'auto' }}
-          CLOUDFLARE_MODEL: ${{ vars.CLOUDFLARE_MODEL || '@cf/meta/llama-3.1-8b-instruct' }}
+          AI_PROVIDER: ${{ vars.AI_PROVIDER || 'cloudflare' }}
+          CLOUDFLARE_MODEL: ${{ vars.CLOUDFLARE_MODEL || '@cf/meta/llama-3.3-70b-instruct-fp8-fast' }}
           CLOUDFLARE_IMAGE_ENABLED: "true"
           COMFYUI_ENABLED: "false"
           ALLOW_PLACEHOLDER_IMAGES: "true"
-          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           EMERGENCY_STOP: ${{ vars.EMERGENCY_STOP || 'false' }}
           TIMEZONE: Asia/Kolkata
           PUBLISHING_MODE: schedule
