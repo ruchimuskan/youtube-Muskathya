@@ -3,6 +3,7 @@ from unittest.mock import MagicMock, patch
 import httpx
 
 from app.ai.providers.cloudflare import CloudflareWorkersAI
+from app.ai.providers.router import LLMRouter
 
 
 def test_cloudflare_fallback_on_429():
@@ -11,9 +12,9 @@ def test_cloudflare_fallback_on_429():
     provider.settings.cloudflare_api_token = "test_token"
     provider.settings.cloudflare_model = "@cf/meta/llama-3.3-70b-instruct-fp8-fast"
 
-    # Mock responses: first call returns 429, second call with fallback model returns 200
     resp_429 = MagicMock()
     resp_429.status_code = 429
+    resp_429.text = "Too Many Requests"
 
     resp_200 = MagicMock()
     resp_200.status_code = 200
@@ -30,3 +31,45 @@ def test_cloudflare_fallback_on_429():
         assert res.text == "नमस्ते यह कहानी है।"
         assert res.model == "@cf/meta/llama-3.1-8b-instruct"
         assert mock_client.post.call_count == 2
+
+
+def test_cloudflare_non_llama_strips_response_format():
+    provider = CloudflareWorkersAI()
+    provider.settings.cloudflare_account_id = "test_acc"
+    provider.settings.cloudflare_api_token = "test_token"
+    provider.settings.cloudflare_model = "@cf/mistral/mistral-7b-instruct-v0.2"
+
+    resp_200 = MagicMock()
+    resp_200.status_code = 200
+    resp_200.json.return_value = {"result": {"response": '{"test": 1}'}, "success": True}
+    resp_200.raise_for_status.return_value = None
+
+    with patch("httpx.Client") as mock_client_cls:
+        mock_client = MagicMock()
+        mock_client.__enter__.return_value = mock_client
+        mock_client.post.return_value = resp_200
+        mock_client_cls.return_value = mock_client
+
+        res = provider.complete("कहानी लिखो", json_mode=True)
+        assert res.text == '{"test": 1}'
+        call_kwargs = mock_client.post.call_args[1]
+        assert "response_format" not in call_kwargs["json"]
+
+
+def test_router_gemini_fallback():
+    router = LLMRouter()
+    router._cloudflare = MagicMock()
+    router._cloudflare.name = "cloudflare"
+    router._cloudflare.settings.cloudflare_model = "test-model"
+    router._cloudflare.is_available.return_value = True
+    router._cloudflare.complete.side_effect = RuntimeError("All Cloudflare models 429 rate limited")
+
+    router._gemini = MagicMock()
+    router._gemini.name = "gemini"
+    router._gemini.is_available.return_value = True
+    from app.ai.providers.base import LLMResponse
+    router._gemini.complete.return_value = LLMResponse(text="कहानी फ्रॉम जेमिनी", provider="gemini", model="gemini-2.0-flash")
+
+    res = router.complete("कहानी लिखो")
+    assert res.provider == "gemini"
+    assert res.text == "कहानी फ्रॉम जेमिनी"

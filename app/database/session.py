@@ -24,6 +24,14 @@ def get_engine():
     return _engine
 
 
+def reset_engine() -> None:
+    global _engine, _SessionLocal
+    if _engine is not None:
+        _engine.dispose()
+    _engine = None
+    _SessionLocal = None
+
+
 def get_session_factory() -> sessionmaker[Session]:
     get_engine()
     assert _SessionLocal is not None

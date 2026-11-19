@@ -15,11 +15,13 @@ def test_settings_dirs_created(tmp_path, monkeypatch):
 
 
 def test_init_db(tmp_path, monkeypatch):
+    from app.database.session import reset_engine
     monkeypatch.chdir(tmp_path)
     db = tmp_path / "test.db"
     monkeypatch.setenv("DATABASE_URL", f"sqlite:///{db}")
     monkeypatch.setenv("DATA_DIR", str(tmp_path))
     get_settings.cache_clear()
+    reset_engine()
     with session_scope() as session:
         Repository(session).init_db()
     assert db.exists()

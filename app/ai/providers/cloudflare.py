@@ -14,10 +14,12 @@ logger = logging.getLogger(__name__)
 
 FALLBACK_MODELS = [
     "@cf/meta/llama-3.1-8b-instruct",
+    "@cf/meta/llama-3.2-3b-instruct",
+    "@cf/meta/llama-3.2-1b-instruct",
     "@cf/meta/llama-3.3-70b-instruct-fp8-fast",
-    "@cf/meta/llama-3-8b-instruct",
-    "@cf/qwen/qwen2.5-7b-instruct",
     "@cf/mistral/mistral-7b-instruct-v0.2",
+    "@cf/deepseek-ai/deepseek-r1-distill-qwen-32b",
+    "@cf/qwen/qwen1.5-7b-chat-awq",
 ]
 
 
@@ -95,15 +97,40 @@ class CloudflareWorkersAI(LLMProvider):
                 f"https://api.cloudflare.com/client/v4/accounts/"
                 f"{self.settings.cloudflare_account_id}/ai/run/{model}"
             )
+            # Only Llama models reliably support Cloudflare's response_format type
+            req_payload = dict(payload)
+            if not ("llama" in model.lower()):
+                req_payload.pop("response_format", None)
+
             try:
                 with httpx.Client(timeout=120.0) as client:
-                    resp = client.post(url, headers=headers, json=payload)
+                    resp = client.post(url, headers=headers, json=req_payload)
+                    if resp.status_code == 400 and "response_format" in req_payload:
+                        req_payload.pop("response_format", None)
+                        resp = client.post(url, headers=headers, json=req_payload)
+
                     if resp.status_code == 429:
                         logger.warning(
-                            "Cloudflare model %s returned 429 Too Many Requests. Trying fallback model...",
+                            "Cloudflare model %s returned 429 Too Many Requests: %s. Trying fallback model...",
+                            model,
+                            resp.text[:200],
+                        )
+                        last_error = RuntimeError(f"Rate limited (429) on {model}: {resp.text[:200]}")
+                        continue
+                    if resp.status_code == 410:
+                        logger.warning(
+                            "Cloudflare model %s is deprecated (410 Gone). Trying fallback model...",
                             model,
                         )
-                        last_error = RuntimeError(f"Rate limited (429) on {model}")
+                        last_error = RuntimeError(f"Model deprecated (410) on {model}")
+                        continue
+                    if resp.status_code == 400:
+                        logger.warning(
+                            "Cloudflare model %s returned 400 Bad Request: %s. Trying fallback model...",
+                            model,
+                            resp.text[:200],
+                        )
+                        last_error = RuntimeError(f"Bad Request (400) on {model}: {resp.text[:200]}")
                         continue
                     if resp.status_code >= 500:
                         logger.warning(
@@ -135,10 +162,12 @@ class CloudflareWorkersAI(LLMProvider):
                     raw=data if isinstance(data, dict) else None,
                 )
             except httpx.HTTPStatusError as exc:
-                if exc.response.status_code == 429:
+                if exc.response.status_code in (429, 410, 400):
                     logger.warning(
-                        "Cloudflare model %s hit 429 rate limit. Trying fallback...",
+                        "Cloudflare model %s hit HTTP %s: %s. Trying fallback...",
                         model,
+                        exc.response.status_code,
+                        exc.response.text[:200],
                     )
                     last_error = exc
                     continue
