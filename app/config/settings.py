@@ -70,14 +70,14 @@ class Settings(BaseSettings):
         "rich natural colours, professional composition, no watermark, no text"
     )
     cloudflare_image_enabled: bool = True
-    cloudflare_image_model: str = "@cf/stabilityai/stable-diffusion-xl-base-1.0"
+    cloudflare_image_model: str = "@cf/bytedance/stable-diffusion-xl-lightning"
     image_negative_prompt: str = (
         "blurry, low quality, watermark, text, logo, cartoon, anime, deformed, ugly, "
         "bad anatomy, extra limbs, missing fingers, fused limbs, duplicate face, "
         "oversaturated, noisy, grayscale"
     )
     image_guidance: float = 7.5
-    image_num_steps: int = 15
+    image_num_steps: int = 8
     image_gen_width: int = 768
     image_gen_height: int = 432
     image_min_file_bytes: int = 40_000

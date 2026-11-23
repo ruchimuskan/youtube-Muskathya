@@ -52,17 +52,41 @@ def dispatch_youtube_upload(
         if privacy == "private":
             privacy = "public"
 
-    uploader = YouTubeUploader()
-    upload_info = uploader.upload_video(
-        video_asset_id,
-        abs_path(video_path),
-        metadata,
-        privacy=privacy,
-        publish_at=publish_at,
-        thumbnail_path=thumbnail_path,
-    )
-    return {
-        "status": "uploaded",
-        "publish_at": publish_at.isoformat() if publish_at else None,
-        **upload_info,
-    }
+    try:
+        uploader = YouTubeUploader()
+        upload_info = uploader.upload_video(
+            video_asset_id,
+            abs_path(video_path),
+            metadata,
+            privacy=privacy,
+            publish_at=publish_at,
+            thumbnail_path=thumbnail_path,
+        )
+        return {
+            "status": "uploaded",
+            "publish_at": publish_at.isoformat() if publish_at else None,
+            **upload_info,
+        }
+    except Exception as exc:
+        logger.error(
+            "YouTube upload failed (%s: %s). Enqueuing video for deferred upload so creative assets are preserved.",
+            type(exc).__name__,
+            exc,
+        )
+        slot = PublishScheduler().next_slot_when_quota_exhausted()
+        reason = f"upload_deferred: {type(exc).__name__} - {str(exc)[:120]}"
+        entry = enqueue(
+            video_asset_id=video_asset_id,
+            video_path=str(abs_path(video_path)),
+            thumbnail_path=str(abs_path(thumbnail_path)) if thumbnail_path else None,
+            metadata=metadata,
+            story_id=story_id,
+            publish_at_utc=slot,
+            reason=reason,
+        )
+        return {
+            "status": "queued",
+            "publish_at": entry["publish_at"],
+            "queue_id": entry["id"],
+            "error": str(exc),
+        }

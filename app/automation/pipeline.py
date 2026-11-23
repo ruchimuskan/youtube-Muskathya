@@ -281,10 +281,20 @@ class ContentPipeline:
                 if upload_row.get("status") == "queued":
                     result["steps"].append("upload_queued")
                     self.calendar.mark_status(story_id, "queued_upload")
-                    self.notify.send(
-                        "Upload queued (daily limit)",
-                        f"Next slot {upload_row.get('publish_at')}",
-                    )
+                    if "error" in upload_row:
+                        self.notify.send(
+                            "Upload queued (deferred)",
+                            f"{upload_row.get('error')} — Video saved and queued for slot {upload_row.get('publish_at')}",
+                        )
+                        logger.warning(
+                            "Video upload deferred to queue due to: %s. Creative assets are safely preserved.",
+                            upload_row.get("error"),
+                        )
+                    else:
+                        self.notify.send(
+                            "Upload queued (daily limit)",
+                            f"Next slot {upload_row.get('publish_at')}",
+                        )
                 else:
                     result["youtube_video_id"] = upload_row.get("youtube_video_id")
                     result["youtube_url"] = upload_row.get("youtube_url")

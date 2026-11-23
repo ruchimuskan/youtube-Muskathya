@@ -100,7 +100,15 @@ class ImageGenerator:
                     return
             except Exception as exc:
                 last_err = exc
-                wait = min(4 + attempt * 4, 20)
+                err_msg = str(exc).lower()
+                # If all models failed or deprecated, fast fallback without waiting
+                if "all cloudflare image models failed" in err_msg or "410" in err_msg:
+                    logger.warning(
+                        "Cloudflare image generation unavailable (%s). Using fallback art immediately.",
+                        exc,
+                    )
+                    break
+                wait = min(4 + attempt * 4, 16)
                 logger.warning(
                     "Cloudflare image attempt %s/%s scene %s (sleep %ss): %s",
                     attempt + 1,
@@ -111,7 +119,7 @@ class ImageGenerator:
                 )
                 time.sleep(wait)
         raise RuntimeError(
-            f"Cloudflare image failed after {retries} tries: {last_err}"
+            f"Cloudflare image failed after tries: {last_err}"
         )
 
     def generate_scene_images(

@@ -159,7 +159,11 @@ class YouTubeOAuth:
         path = self._token_path()
         if not path.exists():
             return None
-        data = json.loads(path.read_text(encoding="utf-8"))
+        try:
+            data = json.loads(path.read_text(encoding="utf-8"))
+        except Exception as exc:
+            logger.error("Failed to read token file %s: %s", path, exc)
+            return None
         creds = Credentials(
             token=data.get("token"),
             refresh_token=data.get("refresh_token"),
@@ -169,14 +173,27 @@ class YouTubeOAuth:
             scopes=data.get("scopes"),
         )
         if data.get("expiry"):
-            creds.expiry = datetime.fromisoformat(data["expiry"])
+            try:
+                creds.expiry = datetime.fromisoformat(data["expiry"])
+            except Exception:
+                pass
         if creds.expired and creds.refresh_token:
-            creds.refresh(Request())
-            self.save_credentials(creds)
+            try:
+                creds.refresh(Request())
+                self.save_credentials(creds)
+            except Exception as exc:
+                logger.error("Failed to refresh Google OAuth token (%s): %s", type(exc).__name__, exc)
+                raise RuntimeError(
+                    f"YouTube OAuth token expired or revoked ({exc}). "
+                    "Please re-authenticate via web dashboard or update YOUTUBE_OAUTH_TOKENS_JSON secret."
+                ) from exc
         return creds
 
     def connection_status(self) -> dict[str, Any]:
-        creds = self.load_credentials()
+        try:
+            creds = self.load_credentials()
+        except Exception as exc:
+            return {"connected": False, "expired": True, "message": str(exc)}
         if not creds:
             return {"connected": False, "message": "Not authorized"}
         expired = bool(creds.expired)
