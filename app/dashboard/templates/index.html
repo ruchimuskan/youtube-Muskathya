@@ -20,9 +20,10 @@
     <h2>Channel</h2>
     {% if channel %}
       <p>Connected: <strong>{{ channel.channel_title }}</strong> ({{ channel.channel_id }})</p>
+      <p><a href="/oauth/start" style="color: #64b5f6; font-weight: bold;">🔄 Reconnect / Re-authorize YouTube</a></p>
     {% else %}
       <p class="warn">Not connected.</p>
-      <p><a href="/oauth/start">Connect YouTube (Google OAuth)</a></p>
+      <p><a href="/oauth/start" style="color: #64b5f6; font-weight: bold;">Connect YouTube (Google OAuth)</a></p>
     {% endif %}
     <p>OAuth: {{ oauth_status }}</p>
     {% if settings.emergency_stop %}
