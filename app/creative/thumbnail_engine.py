@@ -28,8 +28,10 @@ from app.video.thumbnail_generator import ThumbnailGenerator, YOUTUBE_THUMB_SIZE
 logger = logging.getLogger(__name__)
 
 CINEMATIC_PREFIX = (
-    "Premium Indian YouTube thumbnail key art, ultra HD 3D cinematic CGI animation, "
-    "Pixar-quality mythological style, NOT a photograph, NOT stock image, NO TEXT, NO LETTERS"
+    "Ultra-realistic cinematic Bollywood thriller movie poster, 35mm film photography, "
+    "intense dramatic chiaroscuro lighting, emotional expressive Indian faces, single clear focal subject, "
+    "high dynamic range, clean uncluttered background, 16:9 landscape composition, 8k, "
+    "NO TEXT, NO LETTERS, NO WORDS, NO WATERMARK, NO CARTOON, NO CGI"
 )
 
 

@@ -35,6 +35,16 @@ class DialogueManager:
             return base * 1.08
         return base
 
+    def _emotion_scale(self, instruction: str, base_scale: float) -> float:
+        inst = (instruction or "").lower()
+        if any(w in inst for w in ("घबराकर", "डर", "खौफ़", "जल्दी", "भागते हुए", "शॉक्ड")):
+            return base_scale * 0.92  # Faster, tense delivery
+        if any(w in inst for w in ("रोते हुए", "दुख", "उदासी", "गम", "निराश")):
+            return base_scale * 1.15  # Slower, emotionally heavy
+        if any(w in inst for w in ("गुस्सा", "क्रोध", "चीख")):
+            return base_scale * 0.95
+        return base_scale
+
     def render_story_audio(
         self,
         story: dict,
@@ -58,6 +68,8 @@ class DialogueManager:
         for scene in story.get("scenes", []):
             sn = scene.get("scene_number", 0)
             narration = (scene.get("narration") or "").strip()
+            # Clean narration of any accidental 'सूत्रधार:' or 'Narrator:' prefixes
+            narration = re.sub(r"^(?:सूत्रधार|Narrator|वॉइसओवर|Voiceover)\s*[:：\-]\s*", "", narration).strip()
             scale = self._length_scale(scene, base_scale)
             if narration:
                 out = work_dir / f"scene_{sn:03d}_narration.wav"
@@ -76,10 +88,16 @@ class DialogueManager:
                 )
 
             for i, line in enumerate(scene.get("dialogue") or []):
-                name = line.get("character", "unknown")
-                text = (line.get("line") or "").strip()
-                if not text:
+                raw_name = line.get("character", "unknown")
+                raw_text = (line.get("line") or "").strip()
+                if not raw_text:
                     continue
+
+                # Strip attribution labels and stage directions from spoken audio text
+                from app.ai.story_generator import StoryGenerator
+                name, emotion, clean_text = StoryGenerator.clean_dialogue_line(raw_text, default_char=raw_name)
+                acting_instruction = line.get("acting_instruction") or emotion
+                text = clean_text or raw_text
 
                 # ── Double-voice guard ──────────────────────────────────────
                 # If the narration already contains this dialogue line (the
@@ -105,13 +123,14 @@ class DialogueManager:
                 # ────────────────────────────────────────────────────────────
 
                 gender = line.get("gender") or characters.get(name, {}).get("gender", "female")
+                dial_scale = self._emotion_scale(acting_instruction, scale)
                 out = work_dir / f"scene_{sn:03d}_dialogue_{i}.wav"
                 self.segmenter.synthesize_full(
                     text,
                     out,
                     language=language,
                     gender=str(gender),
-                    length_scale=scale,
+                    length_scale=dial_scale,
                     scene_number=sn,
                     kind=f"dialogue_{i}",
                     tts_log=tts_log,

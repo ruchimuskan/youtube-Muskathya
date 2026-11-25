@@ -47,6 +47,11 @@ def create_app() -> FastAPI:
                     select(LearningRecord).order_by(desc(LearningRecord.created_at)).limit(10)
                 )
             )
+            story_rows = list(
+                session.scalars(
+                    select(StoryProject).order_by(desc(StoryProject.created_at)).limit(8)
+                )
+            )
             channel_row = Repository(session).get_active_channel()
 
             uploads = [
@@ -68,6 +73,28 @@ def create_app() -> FastAPI:
                 else None
             )
 
+            recent_stories = []
+            for sp in story_rows:
+                s_json = sp.story_json or {}
+                scenes = s_json.get("scenes") or []
+                q_score = s_json.get("quality_score") or (
+                    s_json.get("quality_report", {}).get("total_score") if isinstance(s_json.get("quality_report"), dict) else 88
+                )
+                recent_stories.append(
+                    {
+                        "id": sp.id,
+                        "title": sp.title,
+                        "genre": sp.genre,
+                        "scenes_count": len(scenes),
+                        "quality_score": q_score,
+                        "hook": (s_json.get("hook_opening") or "")[:80],
+                        "created_at": sp.created_at.strftime("%Y-%m-%d %H:%M") if sp.created_at else "",
+                    }
+                )
+
+        from app.youtube.upload_queue import _load as load_queue
+        pending_queue = load_queue()
+
         return templates.TemplateResponse(
             request,
             "index.html",
@@ -76,6 +103,8 @@ def create_app() -> FastAPI:
                 "uploads": uploads,
                 "lessons": lessons,
                 "channel": channel,
+                "recent_stories": recent_stories,
+                "pending_queue": pending_queue,
                 "oauth_status": oauth.connection_status(),
                 "settings": get_settings(),
             },

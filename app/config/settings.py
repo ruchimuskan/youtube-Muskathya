@@ -34,13 +34,14 @@ class Settings(BaseSettings):
     cloudflare_model: str = "@cf/meta/llama-3.3-70b-instruct-fp8-fast"
 
     default_language: Literal["hi", "en"] = "hi"
-    default_genre: str = "moral"
+    default_genre: str = "suspense"
     video_aspect_ratio: Literal["16:9", "9:16"] = "16:9"
-    video_min_duration_sec: int = 300
-    video_max_duration_sec: int = 600
+    video_min_duration_sec: int = 600
+    video_max_duration_sec: int = 900
     video_fps: int = 30
-    story_min_scenes: int = 8
-    story_max_scenes: int = 12
+    story_min_scenes: int = 15
+    story_max_scenes: int = 22
+    story_min_quality_score: int = 85
     max_daily_uploads: int = 1
     privacy_mode: Literal["private", "unlisted", "public"] = "public"
     publishing_mode: Literal["immediate", "schedule"] = "schedule"
@@ -83,8 +84,8 @@ class Settings(BaseSettings):
     image_min_file_bytes: int = 40_000
     image_max_retries: int = 4
     allow_placeholder_images: bool = True
-    # Cap scene images on cloud so Cloudflare 408s don't kill the daily upload.
-    cloud_max_scene_images: int = 12
+    # Allow 15-25 scene images for full 10-15 minute cinematic stories
+    cloud_max_scene_images: int = 25
     image_fallback_dir: Path = Path("./data/fallback_images")
     comfyui_enabled: bool = False
 

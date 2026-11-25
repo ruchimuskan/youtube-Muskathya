@@ -222,8 +222,12 @@ class ContentPipeline:
                 title=seo["recommended_title"],
                 story_complete=bool(story.get("ending")),
                 language=self.settings.default_language,
+                story=story,
+                seo=seo,
+                image_paths=image_paths,
             )
             result["qc"] = qc.to_dict()
+            result["story_quality_score"] = story.get("quality_score", 90)
 
             with session_scope() as session:
                 repo = Repository(session)

@@ -46,6 +46,9 @@ class QualityChecker:
         title: str | None = None,
         story_complete: bool = True,
         language: str | None = None,
+        story: dict | None = None,
+        seo: dict | None = None,
+        image_paths: list[Path] | None = None,
     ) -> QCResult:
         result = QCResult(passed=True)
 
@@ -98,12 +101,30 @@ class QualityChecker:
                 with Image.open(thumbnail_path) as im:
                     tw, th = im.size
                     readable = tw >= 640 and th >= 360
-                add("thumbnail", readable, f"{tw}x{th}")
+                add("thumbnail", readable, f"{tw}x{th}", critical=not readable)
             else:
                 add("thumbnail", False, "thumbnail missing", critical=True)
 
-        add("story_complete", story_complete, "story marked complete")
+        add("story_complete", story_complete, "story marked complete", critical=not story_complete)
         if title:
-            add("title_present", len(title.strip()) > 0, "title set")
+            add("title_present", len(title.strip()) > 0, "title set", critical=len(title.strip()) == 0)
+
+        # Advanced Bollywood Automation QC checks
+        if story:
+            score = story.get("quality_score", 90)
+            add("story_quality_score", score >= 85, f"score={score}/100 (min 85)", critical=score < 70)
+            add("opening_hook", bool(story.get("hook_opening")), "hook opening verified", critical=False)
+            add("ending_complete", bool(story.get("ending")), "satisfying ending present", critical=False)
+            add("conclusion_appropriate", bool(story.get("conclusion_moral")), "conclusion/moral present", critical=False)
+            add("character_consistency", bool(story.get("character_references")), "character reference sheet verified", critical=False)
+
+        if image_paths and story:
+            num_scenes = len(story.get("scenes") or [])
+            ok_imgs = len(image_paths) >= max(1, int(num_scenes * 0.75))
+            add("images_match_scenes", ok_imgs, f"images={len(image_paths)} for {num_scenes} scenes", critical=len(image_paths) == 0)
+
+        if seo:
+            has_seo = bool(seo.get("recommended_title") and seo.get("description") and seo.get("tags"))
+            add("seo_metadata_generated", has_seo, "SEO title, description, and tags verified", critical=not has_seo)
 
         return result

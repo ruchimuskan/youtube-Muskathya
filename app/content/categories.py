@@ -248,8 +248,8 @@ def format_duration_range(mode: str) -> tuple[int, int, int, int]:
     if mode == "short":
         return 30, 60, 4, 6
     if mode == "extended":
-        return 720, 1080, 14, 20
+        return 720, 1080, 18, 25
     if mode == "compilation":
-        return 720, 1200, 16, 24
-    # long mode: 5–10 minutes for complete, high-retention Hindi stories (8-12 scenes)
-    return 300, 600, 8, 12
+        return 900, 1500, 20, 28
+    # long mode: 10–15 minutes for complete, high-retention cinematic Hindi stories (15-22 scenes)
+    return 600, 900, 15, 22

@@ -46,23 +46,24 @@ class ThumbnailGenerator:
         with Image.open(base_image) as src:
             img = src.convert("RGB").resize(YOUTUBE_THUMB_SIZE, Image.Resampling.LANCZOS)
 
-        overlay = Image.new("RGBA", YOUTUBE_THUMB_SIZE, (0, 0, 0, 0))
-        draw_o = ImageDraw.Draw(overlay)
-        bar_h = 220 if suspense else 190
-        draw_o.rectangle(
-            [(0, YOUTUBE_THUMB_SIZE[1] - bar_h), (1280, 720)],
-            fill=(0, 0, 0, 255),
-        )
-        img = Image.alpha_composite(img.convert("RGBA"), overlay)
+        bar_h = 240 if suspense else 190
+        # Smooth atmospheric dark gradient scrim (leaves artwork visible while ensuring text contrast)
+        gradient = Image.linear_gradient("L").resize((1280, bar_h))
+        gradient = gradient.point(lambda p: int(220 * ((p / 255.0) ** 1.3)))
+        black_scrim = Image.new("RGBA", (1280, bar_h), (0, 0, 0, 255))
+        black_scrim.putalpha(gradient)
+        img = img.convert("RGBA")
+        img.paste(black_scrim, (0, 720 - bar_h), black_scrim)
+
         font_path = devanagari_font_path()
 
-        head_size = 78
+        head_size = 84
         words = headline.split()
-        if len(words) > 7:
-            headline = " ".join(words[:7])
+        if len(words) > 5:
+            headline = " ".join(words[:5])
         tw = shaped_text_width(headline, font_path, head_size)
         hx = max((1280 - int(tw)) // 2, 20)
-        hy_top = 720 - bar_h + 35
+        hy_top = 720 - bar_h + 38
         draw_devanagari_outlined(
             img,
             (hx, self._baseline_y(hy_top, head_size)),

@@ -89,7 +89,9 @@ class ImageGenerator:
         char_mgr: CharacterManager,
         scene: dict,
     ) -> None:
-        base_seed = char_mgr.character_seed(f"scene_{scene.get('scene_number')}")
+        base_seed = char_mgr.character_seed(
+            f"scene_{scene.get('scene_number')}", story_seed=getattr(char_mgr, "story_id", 42)
+        )
         last_err: Exception | None = None
         retries = max(self.settings.image_max_retries, 4)
         for attempt in range(retries):

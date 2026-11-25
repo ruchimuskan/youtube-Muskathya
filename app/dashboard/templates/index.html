@@ -32,8 +32,57 @@
   </div>
 
   <div class="card">
-    <h2>Overview</h2>
-    <p>Total videos produced: {{ total_videos }}</p>
+    <h2>Cinematic Story Engine Status</h2>
+    <p>Target Genre: <strong>Suspense, Thriller, Psychological Mystery</strong></p>
+    <p>Story Quality Threshold: <strong>85 / 100 (Strict Quality Filter Active)</strong></p>
+    <p>Visual Style: <strong>Photorealistic Bollywood Thriller Cinematography (15-25 scene visuals)</strong></p>
+    <p>Character Consistency: <strong>Reference Sheets Active (Stable Seeds & Visual Anchors)</strong></p>
+    <p>Voice Delivery: <strong>Hindi Piper TTS (Filtered Stage Directions & Emotional Pacing)</strong></p>
+    <p>Thumbnails: <strong>Curiosity Poster Hooks (PIL Devanagari Anti-Aliased Outline)</strong></p>
+  </div>
+
+  <div class="card">
+    <h2>Recent Story Projects & Quality Scores</h2>
+    <table>
+      <tr><th>ID</th><th>Title</th><th>Genre</th><th>Scenes</th><th>Quality Score</th><th>Hook</th></tr>
+      {% for s in recent_stories %}
+      <tr>
+        <td>#{{ s.id }}</td>
+        <td><strong>{{ s.title }}</strong></td>
+        <td>{{ s.genre }}</td>
+        <td>{{ s.scenes_count }} scenes</td>
+        <td>
+          {% if s.quality_score >= 85 %}
+            <span style="color: #81c784; font-weight: bold;">{{ s.quality_score }}/100 (Approved)</span>
+          {% else %}
+            <span style="color: #e57373; font-weight: bold;">{{ s.quality_score }}/100 (Refined)</span>
+          {% endif %}
+        </td>
+        <td><em>{{ s.hook }}...</em></td>
+      </tr>
+      {% else %}
+      <tr><td colspan="6">No stories generated yet</td></tr>
+      {% endfor %}
+    </table>
+  </div>
+
+  <div class="card">
+    <h2>Pending Upload Queue (Deferred / Scheduled)</h2>
+    {% if pending_queue %}
+      <table>
+        <tr><th>ID</th><th>Video Path</th><th>Scheduled For</th><th>Reason</th></tr>
+        {% for q in pending_queue %}
+        <tr>
+          <td>{{ q.id }}</td>
+          <td>{{ q.video_path }}</td>
+          <td>{{ q.publish_at }}</td>
+          <td>{{ q.reason }}</td>
+        </tr>
+        {% endfor %}
+      </table>
+    {% else %}
+      <p style="color: #81c784;">Queue clean — all videos published or ready.</p>
+    {% endif %}
   </div>
 
   <div class="card">

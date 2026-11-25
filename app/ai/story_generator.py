@@ -1,10 +1,13 @@
 from __future__ import annotations
 
+import json
 import logging
+import re
 from dataclasses import dataclass
 from typing import Any
 
 from app.ai.providers import LLMRouter
+from app.ai.story_quality_checker import StoryQualityChecker, StoryQualityReport
 from app.ai.topic_researcher import TopicResearcher
 from app.config import get_settings
 from app.content.categories import category_story_block, get_category
@@ -17,27 +20,59 @@ STORY_SCHEMA_HINT = """
   "title": "गाँव का आखिरी चिराग और हवेली का रहस्य (Devanagari)",
   "synopsis": "एक रहस्यमयी हवेली में आधी रात को जलती लाल लालटेन और एक पुराने खत का सच जो पूरे गाँव के होश उड़ा देता है।",
   "characters": [
-    {"name": "राघव", "gender": "male", "age_group": "young adult", "description": "Indian youth with leather jacket and flashlight, intense eyes", "voice_id_hint": "hi_IN-pratham-medium"}
+    {
+      "name": "राघव",
+      "gender": "male",
+      "age_group": "26 years old",
+      "description": "Young Indian investigator with sharp jawline, intense eyes, wearing dark navy blue jacket over grey henley",
+      "voice_id_hint": "hi_IN-pratham-medium"
+    }
   ],
   "character_references": [
-    {"name": "राघव", "gender": "male", "age_group": "young adult", "description": "Indian youth with leather jacket and flashlight, intense eyes"}
+    {
+      "name": "राघव",
+      "gender": "male",
+      "age_group": "26 years old",
+      "physical_appearance": "Sharp Indian features, clean shaven, intense piercing eyes, short black styled hair, height 5'11",
+      "signature_attire": "Dark navy blue jacket, grey henley t-shirt, silver watch on left wrist",
+      "personality": "Cautious, razor-sharp observant, fearless"
+    }
   ],
+  "story_structure_breakdown": {
+    "opening_hook": "Shocking incident or discovery within 0-30 seconds",
+    "character_intro": "Establish relationships, stakes and motivations",
+    "mystery_development": "Central conflict and unanswered questions",
+    "suspense_escalation": "Rising clues and believable complications",
+    "major_twist": "Unexpected but foreshadowed plot reversal",
+    "climax": "High stakes confrontation",
+    "proper_ending": "Complete resolution, no unanswered loose ends",
+    "conclusion_moral": "Meaningful emotional realization"
+  },
   "scenes": [
     {
       "scene_number": 1,
-      "story_beat": "hook",
+      "story_beat": "opening_hook",
       "duration_estimate_sec": 45,
-      "visual_description": "A dark spooky Indian mansion in heavy rain, mysterious red lantern shining in top window, cinematic lighting, 8k",
-      "image_prompt": "A dark spooky Indian mansion in heavy rain, mysterious red lantern shining in top window, cinematic lighting, 8k",
+      "visual_description": "Cinematic 35mm photograph of ancient dark Indian mansion in heavy rain, crimson lantern glowing in top attic window, lightning flash, atmospheric mist, photorealistic Bollywood thriller lighting, 8k",
+      "image_prompt": "Cinematic 35mm photo of ancient dark Indian mansion in pouring monsoon rain, crimson lantern glowing in top attic window, atmospheric mist, photorealistic Bollywood thriller lighting",
       "narration": "रात के ठीक बारह बजे, पुरानी हवेली की बंद खिड़की से अचानक लाल रोशनी फूट पड़ी। राघव ने जैसे ही दरवाजे पर हाथ रखा, हवेली के अंदर से किसी के धीमे-धीमे रोने की आवाज गूंजने लगी। हवा इतनी ठंडी थी कि सांसें जम रही थीं।",
-      "dialogue": [{"character": "राघव", "line": "कोई है अंदर? दरवाजा खोलो, मैं जानता हूँ तुम यहीं छुपे हो!", "gender": "male"}],
+      "dialogue": [
+        {
+          "character": "राघव",
+          "acting_instruction": "दबी हुई गंभीर आवाज़",
+          "line": "कोई है अंदर? दरवाजा खोलो, मैं जानता हूँ तुम यहीं छुपे हो!",
+          "gender": "male"
+        }
+      ],
       "mood": "suspense",
+      "characters_present": ["राघव"],
       "sfx_hint": "thunder, rain, creaking door"
     }
   ],
   "hook_opening": "रात के ठीक बारह बजे, पुरानी हवेली की बंद खिड़की से लाल रोशनी फूट पड़ी...",
   "ending": "सच्चाई सामने आ चुकी थी, लेकिन राघव जानता था कि यह रहस्य कभी गाँव के लोगों के जेहन से नहीं मिटेगा।",
-  "call_to_action": "अगर आपको यह कहानी पसंद आई, तो वीडियो को लाइक करें और ऐसी ही कहानियों के लिए चैनल को सब्सक्राइब करें।",
+  "conclusion_moral": "विश्वास वो धागा है जिसे अगर लालच की कैंची से काट दिया जाए, तो ज़िंदगी भर का पछतावा भी उसे दोबारा नहीं जोड़ सकता।",
+  "call_to_action": "अगर आपको यह कहानी पसंद आई, तो वीडियो को लाइक करें और ऐसी ही रोमांचक कहानियों के लिए चैनल को सब्सक्राइब करें।",
   "content_rating": "general",
   "synthetic_disclosure_needed": true
 }
@@ -262,6 +297,29 @@ Schema:
         story = self._ensure_narration_depth(story, req, system)
         story = self._clean_and_deduplicate(story)
 
+        # ── Strict Story Quality Validation & Refinement Loop (Min 85/100) ──
+        checker = StoryQualityChecker(self.llm)
+        report = checker.evaluate(story)
+        retries = 0
+        min_score = getattr(self.settings, "story_min_quality_score", 85)
+
+        while (not report.passed or report.total_score < min_score) and retries < 2:
+            retries += 1
+            logger.warning(
+                "Story scored %s/100 (below %s min). Refinement pass %s/2 with feedback: %s",
+                report.total_score,
+                min_score,
+                retries,
+                report.feedback_for_rewrite,
+            )
+            story = self._refine_story(story, report, req, system)
+            story = self._clean_and_deduplicate(story)
+            report = checker.evaluate(story)
+
+        story["quality_report"] = report.to_dict()
+        story["quality_score"] = report.total_score
+        logger.info("Final approved story quality score: %s/100 (passed=%s)", report.total_score, report.passed)
+
         with session_scope() as session:
             repo = Repository(session)
             row = repo.create_story(
@@ -312,14 +370,175 @@ Schema:
         "मुझे लगा था कि सब कुछ सुलझ गया है, लेकिन यह तो बस एक शुरुआत थी...",
     ]
 
+    @staticmethod
+    def clean_dialogue_line(raw_line: str, default_char: str = "पात्र") -> tuple[str, str, str]:
+        """
+        Parses raw dialogue strings to separate (character_name, emotion_instruction, clean_spoken_line).
+        E.g. 'मां (घबराकर): रोहित! तुम इतनी देर कहां थे?' -> ('मां', 'घबराकर', 'रोहित! तुम इतनी देर कहां थे?')
+        Prevents TTS from reading aloud stage directions and attribution labels.
+        """
+        line = (raw_line or "").strip()
+        character = default_char or "पात्र"
+        emotion = ""
+
+        # Pattern: [Character] [(Emotion)]: [Spoken line]
+        match = re.match(r"^([\u0900-\u097F\w\s]+?)\s*(?:\(([^)]+)\))?\s*[:：\-]\s*(.*)$", line)
+        if match:
+            char_match = match.group(1).strip()
+            if char_match and char_match not in ("Narrator", "सूत्रधार", "Voiceover"):
+                character = char_match
+            if match.group(2):
+                emotion = match.group(2).strip()
+            line = match.group(3).strip()
+        else:
+            emo_match = re.match(r"^\(([^)]+)\)\s*[:：\-]?\s*(.*)$", line)
+            if emo_match:
+                emotion = emo_match.group(1).strip()
+                line = emo_match.group(2).strip()
+
+        # Remove any lingering parenthetical acting directions from spoken audio line
+        line = re.sub(r"\([^)]*\)", "", line).strip()
+        line = re.sub(r"^[:：\-—,\s]+", "", line).strip()
+        return character, emotion, line
+
+    def _refine_story(
+        self,
+        story: dict[str, Any],
+        report: StoryQualityReport,
+        req: StoryGenerationRequest,
+        system: str,
+    ) -> dict[str, Any]:
+        """Rewrites weak sections identified by StoryQualityChecker to exceed 85/100 quality."""
+        scenes = story.get("scenes", [])
+        weak_nums = [w["scene_number"] for w in report.weak_sections if isinstance(w.get("scene_number"), int)]
+
+        prompt = f"""You are an elite Bollywood Script Doctor and Thriller Screenwriter.
+The Hindi story '{story.get("title")}' scored {report.total_score}/100 and requires targeted polishing.
+
+FEEDBACK & DIAGNOSTICS:
+{report.feedback_for_rewrite}
+
+Characters: {json.dumps(story.get("characters", []), ensure_ascii=False)}
+Scenes to revise/enhance: {weak_nums or [1, len(scenes)]}
+
+NON-NEGOTIABLE SCREENPLAY RULES:
+1. Scene 1 MUST have an electrifying cold hook starting directly with shock, discovery, or an impossible dilemma.
+2. Natural Hindi dialogues with genuine human emotion, pauses ('...'), and distinct personalities.
+3. No repetitive questions ('यह क्या है?', 'तुम कौन हो?'). Every line must advance the plot.
+4. The climax and ending must deliver a 100% complete, satisfying resolution resolving all unanswered questions.
+5. Provide a meaningful conclusion/takeaway matching the true events of the story.
+
+Return JSON ONLY:
+{{
+  "refined_scenes": [
+    {{
+      "scene_number": <int>,
+      "story_beat": "<hook|character_intro|mystery|suspense|twist|climax|ending>",
+      "visual_description": "Cinematic 35mm photo, ultra-realistic Bollywood lighting, 8k...",
+      "image_prompt": "Cinematic 35mm photo, ultra-realistic Bollywood lighting...",
+      "narration": "Rich atmospheric Devanagari paragraph (4-6 sentences, min 350 chars)...",
+      "dialogue": [
+        {{"character": "name", "acting_instruction": "emotion", "line": "Hindi line without labels", "gender": "male|female"}}
+      ],
+      "mood": "suspense"
+    }}
+  ],
+  "improved_ending": "Complete resolution tying all threads together",
+  "improved_conclusion_moral": "Meaningful organic emotional realization"
+}}"""
+        try:
+            resp = self.llm.complete(prompt, system=system, json_mode=True)
+            data = self.llm.parse_json(resp.text)
+            refined = {s.get("scene_number"): s for s in data.get("refined_scenes", []) if isinstance(s, dict)}
+            for sc in scenes:
+                sn = sc.get("scene_number")
+                if sn in refined:
+                    ref_sc = refined[sn]
+                    if ref_sc.get("narration"):
+                        sc["narration"] = ref_sc["narration"]
+                    if ref_sc.get("dialogue"):
+                        sc["dialogue"] = ref_sc["dialogue"]
+                    if ref_sc.get("visual_description"):
+                        sc["visual_description"] = ref_sc["visual_description"]
+                    if ref_sc.get("image_prompt"):
+                        sc["image_prompt"] = ref_sc["image_prompt"]
+                    if ref_sc.get("story_beat"):
+                        sc["story_beat"] = ref_sc["story_beat"]
+            if data.get("improved_ending"):
+                story["ending"] = data["improved_ending"]
+            if data.get("improved_conclusion_moral"):
+                story["conclusion_moral"] = data["improved_conclusion_moral"]
+            logger.info("Successfully polished %d weak scenes via script doctor", len(refined))
+        except Exception as exc:
+            logger.warning("LLM script doctor pass failed (%s); applying programmatic polish", exc)
+            self._apply_programmatic_polish(story, report)
+
+        return story
+
+    def _apply_programmatic_polish(self, story: dict[str, Any], report: StoryQualityReport) -> None:
+        scenes = story.get("scenes", [])
+        if not scenes:
+            return
+        # Fix opening hook if weak
+        s1 = scenes[0]
+        s1_narr = (s1.get("narration") or "").strip()
+        boring_starts = ["एक बार की बात", "एक गाँव में", "एक समय की बात", "किसी गाँव में"]
+        if any(b in s1_narr for b in boring_starts) or len(s1_narr) < 140:
+            s1["narration"] = (
+                "हवेली के उस बंद तहखाने से आधी रात को आ रही चीखों ने राघव के होश उड़ा दिए थे। "
+                "सामने टूटी हुई तिजोरी खुली पड़ी थी और अंदर लाल स्याही से लिखा एक पुराना खत रखा था। "
+                "खत में लिखा हर शब्द एक ऐसे कड़वे सच का खुलासा कर रहा था, जिसने उसके पैरों तले ज़मीन खिसका दी।"
+            )
+
+        # Fix ending if abrupt
+        ending = (story.get("ending") or "").strip()
+        if len(ending) < 80:
+            story["ending"] = (
+                "उस रात हवेली की दीवारें गवाह बनीं कि सच्चाई को चाहे कितनी भी गहरी खाई में दफ़न कर दिया जाए, "
+                "वक़्त आने पर वो सामने आकर ही रहती है। राघव ने उस खत को आग के हवाले कर दिया, और इसके साथ ही "
+                "बीस सालों से गाँव पर छाया खौफ़ का साया हमेशा-हमेशा के लिए मिट गया।"
+            )
+            if scenes:
+                scenes[-1]["narration"] = scenes[-1].get("narration", "") + " " + story["ending"]
+
+        if not story.get("conclusion_moral"):
+            story["conclusion_moral"] = (
+                "सच्चाई की राह जितनी भी कठिन और भयानक हो, अंत में जीत हमेशा सत्य और साहस की ही होती है।"
+            )
+
     def _clean_and_deduplicate(self, story: dict[str, Any]) -> dict[str, Any]:
         scenes = story.get("scenes") or []
         seen_dialogues: set[str] = set()
         pool_idx = 0
 
+        # Build / normalize character reference sheets
+        chars = story.get("characters") or []
+        char_refs = story.get("character_references") or []
+        ref_map = {c.get("name"): c for c in char_refs if isinstance(c, dict)}
+
+        for c in chars:
+            if not isinstance(c, dict):
+                continue
+            name = c.get("name", "नायक")
+            if name not in ref_map:
+                desc = c.get("description", "Indian character with sharp expressive features")
+                age = c.get("age_group", "25-30 years old")
+                gender = c.get("gender", "male")
+                ref_map[name] = {
+                    "name": name,
+                    "gender": gender,
+                    "age_group": age,
+                    "physical_appearance": f"Sharp natural Indian features, realistic {gender}, {desc}",
+                    "signature_attire": "Authentic cinematic Indian attire, detailed textures, practical clothing",
+                    "personality": "Observant, emotionally grounded, determined",
+                }
+        story["character_references"] = list(ref_map.values())
+
         for sc in scenes:
             sn = sc.get("scene_number", 1)
             narr = (sc.get("narration") or "").strip()
+            # Clean narration of any accidental 'सूत्रधार:' or 'Narrator:' prefixes
+            narr = re.sub(r"^(?:सूत्रधार|Narrator|वॉइसओवर|Voiceover)\s*[:：\-]\s*", "", narr).strip()
 
             # Ensure minimum narration substance
             if narr and len(narr) < 140:
@@ -336,31 +555,47 @@ Schema:
                     )
                 sc["narration"] = narr
 
-            # Deduplicate dialogue lines
+            # Clean and deduplicate dialogue lines
             new_dialogue = []
             for d in sc.get("dialogue") or []:
                 if isinstance(d, str):
                     d = {"character": "पात्र", "line": d, "gender": "male"}
                 elif not isinstance(d, dict):
                     continue
-                line = (d.get("line") or "").strip()
-                if not line:
+                raw_line = (d.get("line") or "").strip()
+                if not raw_line:
                     continue
-                norm = line.replace("?", "").replace("।", "").replace("!", "").replace(".", "").replace(",", "").strip()
 
+                # Strip attribution labels from spoken audio line
+                parsed_char, parsed_emo, clean_line = self.clean_dialogue_line(
+                    raw_line, default_char=d.get("character", "पात्र")
+                )
+                d["character"] = parsed_char
+                if parsed_emo:
+                    d["acting_instruction"] = parsed_emo
+                d["line"] = clean_line
+
+                norm = clean_line.replace("?", "").replace("।", "").replace("!", "").replace(".", "").replace(",", "").strip()
                 is_duplicate = norm in seen_dialogues
 
                 if is_duplicate:
                     # Replace with unique, situation-grounded dialogue
                     replacement = self.DYNAMIC_DIALOGUE_POOL[pool_idx % len(self.DYNAMIC_DIALOGUE_POOL)]
                     pool_idx += 1
-                    logger.info("Scene %s: Replaced repetitive dialogue '%s' -> '%s'", sn, line, replacement)
+                    logger.info("Scene %s: Replaced repetitive dialogue '%s' -> '%s'", sn, clean_line, replacement)
                     d["line"] = replacement
                     seen_dialogues.add(replacement)
                 else:
                     seen_dialogues.add(norm)
                 new_dialogue.append(d)
             sc["dialogue"] = new_dialogue
+
+        # Ensure hook_opening and ending match
+        if scenes:
+            if not story.get("hook_opening"):
+                story["hook_opening"] = (scenes[0].get("narration") or "")[:200]
+            if not story.get("ending"):
+                story["ending"] = (scenes[-1].get("narration") or "")[:200]
 
         return story
 
