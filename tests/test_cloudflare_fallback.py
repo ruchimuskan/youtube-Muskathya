@@ -97,3 +97,48 @@ def test_story_generator_fallback_when_llm_fails():
     for sc in story["scenes"]:
         assert len(sc["narration"]) > 100
         assert len(sc["dialogue"]) >= 1
+
+
+def test_cloudflare_flux_payload(tmp_path):
+    from app.images.cloudflare_image import CloudflareImageGenerator
+    gen = CloudflareImageGenerator()
+    gen.settings.cloudflare_account_id = "test_acc"
+    gen.settings.cloudflare_api_token = "test_tok"
+    gen.settings.cloudflare_image_model = "@cf/black-forest-labs/flux-1-schnell"
+
+    resp_200 = MagicMock()
+    resp_200.status_code = 200
+    resp_200.headers = {"content-type": "application/json"}
+    # 1000x600 test png with color variance
+    from io import BytesIO
+    from PIL import Image, ImageDraw
+    test_img = Image.new("RGB", (1000, 600), color=(50, 50, 50))
+    draw = ImageDraw.Draw(test_img)
+    draw.rectangle([100, 100, 500, 500], fill=(240, 180, 40))
+    draw.line([0, 0, 1000, 600], fill=(255, 0, 0), width=10)
+    buf = BytesIO()
+    test_img.save(buf, format="PNG")
+    import base64
+    b64_data = base64.b64encode(buf.getvalue()).decode("utf-8")
+    resp_200.json.return_value = {"result": {"image": b64_data}, "success": True}
+    resp_200.raise_for_status.return_value = None
+
+    with patch("httpx.Client") as mock_client_cls:
+        mock_client = MagicMock()
+        mock_client.__enter__.return_value = mock_client
+        mock_client.post.return_value = resp_200
+        mock_client_cls.return_value = mock_client
+
+        out_file = tmp_path / "test_flux.png"
+        res_path = gen.generate("cinematic scene", out_file, (1280, 720))
+
+        assert res_path.exists()
+        call_kwargs = mock_client.post.call_args[1]
+        payload = call_kwargs["json"]
+        assert payload["prompt"] == "cinematic scene"
+        assert "steps" in payload
+        # Ensure rejected params are NOT sent to flux
+        assert "width" not in payload
+        assert "height" not in payload
+        assert "negative_prompt" not in payload
+

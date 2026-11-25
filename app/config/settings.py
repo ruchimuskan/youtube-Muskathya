@@ -73,7 +73,7 @@ class Settings(BaseSettings):
         "rich natural colours, professional composition, no watermark, no text"
     )
     cloudflare_image_enabled: bool = True
-    cloudflare_image_model: str = "@cf/bytedance/stable-diffusion-xl-lightning"
+    cloudflare_image_model: str = "@cf/black-forest-labs/flux-1-schnell"
     image_negative_prompt: str = (
         "blurry, low quality, watermark, text, logo, cartoon, anime, deformed, ugly, "
         "bad anatomy, extra limbs, missing fingers, fused limbs, duplicate face, "

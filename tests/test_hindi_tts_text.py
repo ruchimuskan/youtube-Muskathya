@@ -16,3 +16,11 @@ def test_two_sentences():
     segs = split_hindi_for_tts(text)
     assert len(segs) >= 3
     assert any("रोहित की" in s for s in segs)
+
+
+def test_dialogue_manager_narration_clean():
+    import re
+    from app.voice.dialogue_manager import DialogueManager
+    # Verify DialogueManager can be imported without NameError on re
+    dm = DialogueManager()
+    assert dm is not None

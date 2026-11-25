@@ -15,8 +15,9 @@ from app.images.image_validator import is_valid_scene_image
 logger = logging.getLogger(__name__)
 
 DEFAULT_CLOUDFLARE_IMAGE_MODELS: list[str] = [
-    "@cf/bytedance/stable-diffusion-xl-lightning",
     "@cf/black-forest-labs/flux-1-schnell",
+    "@cf/black-forest-labs/flux-2-klein-4b",
+    "@cf/leonardo/lucid-origin",
 ]
 
 
@@ -70,21 +71,25 @@ class CloudflareImageGenerator:
                 f"https://api.cloudflare.com/client/v4/accounts/"
                 f"{self.settings.cloudflare_account_id}/ai/run/{model}"
             )
-            payload: dict[str, Any] = {
-                "prompt": prompt,
-                "width": gen_w,
-                "height": gen_h,
-            }
-            if "flux" in model.lower():
-                payload["num_steps"] = 4
+            is_flux = any(k in model.lower() for k in ("flux", "schnell", "klein", "leonardo", "phoenix", "lucid"))
+            if is_flux:
+                payload: dict[str, Any] = {
+                    "prompt": prompt[:2040],
+                    "steps": min(max(self.settings.image_num_steps, 4), 8),
+                }
             else:
-                payload["negative_prompt"] = neg
-                payload["num_steps"] = (
-                    min(max(self.settings.image_num_steps, 4), 8)
-                    if "lightning" in model.lower()
-                    else self.settings.image_num_steps
-                )
-                payload["guidance"] = guidance if guidance is not None else self.settings.image_guidance
+                payload = {
+                    "prompt": prompt,
+                    "width": gen_w,
+                    "height": gen_h,
+                    "negative_prompt": neg,
+                    "num_steps": (
+                        min(max(self.settings.image_num_steps, 4), 8)
+                        if "lightning" in model.lower()
+                        else self.settings.image_num_steps
+                    ),
+                    "guidance": guidance if guidance is not None else self.settings.image_guidance,
+                }
 
             if seed is not None:
                 payload["seed"] = seed
