@@ -27,6 +27,8 @@ class Settings(BaseSettings):
     ai_provider: Literal["cloudflare", "gemini", "ollama", "auto"] = "auto"
     ai_cloudflare_daily_limit: int = 9000
     gemini_api_key: str = ""
+    openai_api_key: str = ""
+    openai_image_model: str = "dall-e-3"
     ollama_base_url: str = "http://127.0.0.1:11434"
     ollama_model: str = "llama3.1:8b"
     cloudflare_account_id: str = ""
