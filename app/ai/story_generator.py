@@ -7,8 +7,15 @@ from dataclasses import dataclass
 from typing import Any
 
 from app.ai.providers import LLMRouter
+from app.ai.repetition_detector import RepetitionDetector
+from app.ai.scene_based_story_writer import SceneBasedStoryWriter
+from app.ai.story_blueprint_generator import StoryBlueprintGenerator
+from app.ai.story_logic_validator import StoryLogicValidator
+from app.ai.story_quality_auditor import StoryQualityAuditor
 from app.ai.story_quality_checker import StoryQualityChecker, StoryQualityReport
+from app.ai.story_rewriter import StoryRewriter
 from app.ai.topic_researcher import TopicResearcher
+from app.ai.vague_sentence_detector import VagueSentenceDetector
 from app.config import get_settings
 from app.content.categories import category_story_block, get_category
 from app.database import Repository, session_scope
@@ -94,10 +101,27 @@ class StoryGenerationRequest:
 
 
 class StoryGenerator:
+    """
+    State-of-the-art Hindi Story Generation Engine for YouTube Automation.
+    Orchestrates Blueprint Generation, Scene-Based Writing (Show Don't Tell),
+    Semantic Repetition Detection, Vague Sentence Detection, Logic Validation,
+    Strict 10-Parameter Screenplay Auditing (Min 85/100), and Targeted Rewriting.
+    """
+
     def __init__(self, llm: LLMRouter | None = None) -> None:
         self.llm = llm or LLMRouter()
         self.topics = TopicResearcher(self.llm)
         self.settings = get_settings()
+
+        # Modular Engine Components
+        self.blueprint_gen = StoryBlueprintGenerator(self.llm)
+        self.scene_writer = SceneBasedStoryWriter(self.llm)
+        self.repetition_detector = RepetitionDetector()
+        self.vague_detector = VagueSentenceDetector()
+        self.logic_validator = StoryLogicValidator()
+        self.quality_auditor = StoryQualityAuditor(self.llm)
+        self.quality_checker = StoryQualityChecker(self.llm)
+        self.rewriter = StoryRewriter(self.llm)
 
     def _lessons_block(self) -> str:
         with session_scope() as session:
@@ -112,33 +136,17 @@ class StoryGenerator:
             "and YouTube audience-retention expert. Your mission is to create original, emotionally powerful, "
             "unpredictable, cinematic Hindi stories that viewers cannot stop watching until the very end.\n\n"
             "ABSOLUTE RULE: NO BORING STORIES.\n"
-            "NEVER generate:\n"
-            "- Repeated poor girl/rich boy love stories.\n"
-            "- Generic mother-son sacrifice stories.\n"
-            "- Predictable village moral stories.\n"
-            "- Repetitive ghost/daayan stories.\n"
-            "- Stories where everything is obvious from the beginning.\n"
-            "- Unnecessary descriptions and long introductory filler.\n"
-            "- Artificial emotional dialogues.\n"
-            "- Predictable happy endings.\n\n"
-            "STRICT ANTI-REPETITION MANDATE:\n"
-            "- NEVER use formulaic, repetitive scene structures where a character simply walks into rooms, finds random objects, and acts surprised.\n"
-            "- NEVER repeat the same questions or dialogue across scenes like 'यह क्या है?', 'यह क्या हो रहा है?', 'तुम कौन हो?', 'यह क्या मतलब है?', 'तुम्हें कुछ नहीं पता'. Each line of dialogue must be distinct, emotionally meaningful, and advance the plot.\n"
-            "- NEVER write 1-2 sentence stub narrations. Every single scene must have a rich, atmospheric paragraph of 4-7 descriptive sentences (300-500 Devanagari characters) with vivid sensory details, character psychology, and tension.\n\n"
-            "CORE PILLARS:\n"
-            "1. COLD OPEN HOOK (First 5-10s): Start directly with a shocking, mysterious, emotional, or unexpected incident, "
-            "dialogue, betrayal, impossible situation, or disturbing secret. NEVER start with boring introductions like "
-            "'Ek gaon mein ek aadmi rehta tha' or weather/setting descriptions.\n"
-            "2. RETENTION PACING: Introduce a new development or tension beat every 30-45 seconds. Avoid repetitive scenes. "
-            "Every scene must reveal something, increase tension, or develop a character. Use natural cliffhangers at scene transitions.\n"
-            "3. NATURAL HINDI DIALOGUES: Write in conversational, simple, everyday natural Hindi (Devanagari). Characters must sound "
-            "like real Indian people with distinct speaking styles, emotional pauses ('...'), realistic reactions, and interruptions. "
-            "Never make characters speak like formal textbook narrators. Create original dialogue suited to your characters.\n"
-            "4. EMOTIONAL DEPTH & TWISTS: Every major twist must have clues planted earlier. Avoid predictable endings. The final "
-            "revelation should make viewers rethink earlier scenes. Morally complicated decisions and unexpected connections over forced fairy-tale endings.\n"
-            "5. NARRATION VS DIALOGUE: Write narration separately from character dialogues. Narration sets the scene context; dialogue "
-            "speaks the character's exact words. Never put a character's spoken words inside the narration field (that causes double audio in TTS).\n"
-            "6. AI IMAGE VISUALS: visual_description and image_prompt MUST be in English for AI image generation.\n"
+            "1. COLD OPEN HOOK: Scene 1 must start directly with a shocking, mysterious, emotional, or unexpected incident.\n"
+            "2. NATURAL HINDI DIALOGUES: Conversational, everyday natural Hindi with realistic emotion and distinct personalities.\n"
+            "3. CRITICAL STORYTELLING RULE: SHOW WHAT ACTUALLY HAPPENED (SHOW, DON'T TELL).\n"
+            "NEVER summarize struggles or problems with vague sentences like 'उसे बहुत संघर्ष करना पड़ा' or 'उसकी जिंदगी बदल गई'.\n"
+            "Always explain the concrete event: Who caused the problem? Where? When? What did the character see, hear, say, and do?\n\n"
+            "BAN REPETITIVE SENTENCES:\n"
+            "- Never repeat the same information using different words to increase length.\n"
+            "- Every single paragraph must contribute new information, action, clue, conflict, or consequence.\n"
+            "- Avoid formulaic dialogue question loops ('यह क्या है?', 'तुम कौन हो?', 'क्या हुआ?').\n\n"
+            "COMPLETE SATISFYING RESOLUTION:\n"
+            "- Show the exact fate of protagonist, antagonist, and mystery. Never end with cop-outs like 'समय के साथ सब ठीक हो गया'.\n"
             "Output valid JSON only."
         )
 
@@ -149,130 +157,36 @@ class StoryGenerator:
         cat_block = category_story_block(category)
         min_scenes = req.min_scenes or self.settings.story_min_scenes
         max_scenes = req.max_scenes or self.settings.story_max_scenes
+        target_scene_count = 5 if req.is_short else max(min_scenes, min(12, max_scenes))
 
-        if req.is_short:
-            scene_cap = "exactly 4 to 5 scenes"
-            brevity = (
-                "Total 30-60 seconds spoken. Short Hindi lines. "
-                "visual_description under 30 English words."
-            )
-        else:
-            scene_cap = f"exactly {min_scenes} to {max_scenes} scenes"
-            brevity = (
-                f"Generate a deep, engaging, complete cinematic Hindi story of {scene_cap}. "
-                "CRITICAL STORYTELLING RULES: "
-                "1. NO 1-2 SENTENCE SUMMARIES. Every scene MUST have a rich narrative paragraph (4-7 detailed sentences, MINIMUM 300-450 Devanagari characters) with atmosphere, sensory details, and emotional tension. "
-                "2. AUTHENTIC DIALOGUE: Every scene MUST have 2-4 lines of natural Hindi dialogue between characters with emotion, pauses ('...'), and distinct personalities. "
-                "3. ABSOLUTE ANTI-REPETITION: NEVER repeat questions like 'यह क्या है?', 'यह क्या हो रहा है?', 'तुम कौन हो?'. Every dialogue line must be unique and directly tied to the scene's events. "
-                "4. COMPLETE 3-ACT STRUCTURE: "
-                "   - Scene 1: Cold hook with high curiosity and immediate tension. "
-                "   - Early scenes: Background, characters, first clue / complication. "
-                "   - Middle scenes: Rising stakes, false leads, dark discoveries, emotional confrontations. "
-                "   - Climax scenes: Shocking confrontation, unexpected twist that reframes earlier clues. "
-                "   - Final scene: Full, satisfying resolution that leaves the viewer spellbound. "
-                "5. The entire story MUST be fully self-contained, resolving all questions."
-            )
-
-        lang_rules = ""
-        if req.language == "hi":
-            lang_rules = """
-- Hindi Devanagari ONLY for narration, dialogue, title, synopsis, hook, ending, call_to_action
-- Natural emotional Hindi, not translated English
-- Pronounce-friendly sentences for TTS
-- Include call_to_action field in Hindi
-- CRITICAL: narration must NOT repeat or quote the dialogue lines. Narration sets the scene context; dialogue speaks the character's exact words. Never put a character's spoken words inside the narration field — that causes double audio.
-- STRICT ANTI-REPETITION MANDATE: Every single scene MUST have unique, progressing narration (at least 3-5 sentences) and distinct character dialogue. NEVER repeat the same phrase, sentence, or dialogue across scenes. Each scene must advance the story with new information or conflict.
-"""
-
-        prompt = f"""Write a completely original {req.genre} story for YouTube.
-Language: {req.language}
-Content category: {category.name_hi}
-Target narration duration: ~{req.target_duration_sec} seconds
-Format: {"vertical Short (9:16)" if req.is_short else "landscape cinematic long-form (16:9)"}
-Style: {req.content_style}
-
-{cat_block}
-
-Visual style hint: {req.visual_style or category.visual_style}
-
-Topic research:
-{topic}
-
-Apply lessons:
-{lessons}
-
-{lang_rules}
-
-Requirements:
-- Use {scene_cap}
-- {brevity}
-- ABSOLUTE RULE: NO BORING STORIES:
-  * NEVER generate: repeated poor girl/rich boy love stories, generic mother-son sacrifice stories, predictable village moral stories, repetitive ghost/daayan stories, obvious endings.
-  * Every new story must have a unique concept, conflict, setting, believable characters, and an unpredictable ending.
-- 1. STORY OPENING (First 5-10 seconds):
-  * Scene 1 MUST start directly with a shocking, mysterious, emotional, or unexpected incident, dialogue, betrayal, or impossible situation.
-  * First 5-10 seconds must trigger immediate curiosity and hook the audience.
-  * NEVER start with boring introductions like "Ek gaon mein ek aadmi rehta tha" or generic setting/weather descriptions.
-- 2. AUDIENCE RETENTION & PACING:
-  * Introduce a new development or tension beat approximately every 30-45 seconds.
-  * Avoid repetitive scenes and unnecessary filler explanations.
-  * Every scene must reveal new information, increase tension, or develop a character.
-  * End scenes with natural cliffhangers at important transitions.
-- 3. NATURAL CONVERSATIONAL HINDI DIALOGUES:
-  * Conversational, simple, everyday natural Hindi (Devanagari). Characters must sound like real Indian people.
-  * Give every character a distinct speaking style with emotional pauses ('...'), realistic reactions, and interruptions.
-  * Avoid overly formal or textbook Hindi (BAD: "माता जी, मैं आपसे एक महत्वपूर्ण विषय पर चर्चा करना चाहता हूँ।" -> GOOD: "माँ... तुमसे एक बात कहनी थी। लेकिन समझ नहीं आ रहा कैसे बोलूँ।").
-  * Do not make characters speak like narrators. Never summarize an emotional scene that should be shown through dialogue.
-- 4. LOGICAL TWISTS & CLIMAX:
-  * Multiple meaningful twists. Every major twist must have clues planted earlier.
-  * Avoid predictable endings. The final revelation should make viewers rethink earlier scenes.
-  * Prefer shocking revelations, unexpected connections, or morally complicated decisions over forced happy endings.
-- 5. NARRATION AND TTS AUDIO SEPARATION:
-  * Narration sets the scene context; dialogue speaks the character's exact words.
-  * CRITICAL: Never put a character's spoken words inside the narration field — that causes double audio in TTS.
-  * Distinct speaker labels in dialogue array with gender and Devanagari lines.
-- 6. GOLDEN RULE:
-  * Write stories that people WANT to finish, not stories that merely fill duration.
-  * Originality, emotional connection, suspense, natural dialogue, and audience retention are paramount.
-- 7. STORY COMPLETENESS (NON-NEGOTIABLE):
-  * The story MUST be 100% complete — full beginning, middle, AND satisfying end.
-  * NEVER stop mid-story. NEVER leave plot threads unresolved.
-  * The final scene must clearly resolve the central conflict or deliver the shocking final revelation.
-  * A viewer watching till the last second must feel the story is fully told — not cut off, not rushed.
-  * Budget scenes properly: use early scenes for hook/setup, middle scenes for tension/twists, last 3-4 scenes for climax and resolution.
-- Character visual descriptions for consistency across all scenes
-- Children-safe only if genre is children
-- Original work only
-- Valid JSON only
-
-Schema:
-{STORY_SCHEMA_HINT}
-"""
-
-        story = None
-        last_err: Exception | None = None
         system = self._hindi_system() if req.language == "hi" else "You are an expert screenwriter. Output only valid JSON."
 
-        for attempt in range(3):
-            extra = ""
-            if attempt > 0:
-                extra = (
-                    "\nIMPORTANT: Previous output was invalid JSON. "
-                    "Return smaller JSON with fewer scenes and shorter strings."
-                )
-            try:
-                response = self.llm.complete(
-                    prompt + extra,
-                    system=system,
-                    json_mode=True,
-                )
-                story = self.llm.parse_json(response.text)
-                break
-            except Exception as exc:
-                last_err = exc
-                logger.warning("Story generation attempt %s failed: %s", attempt + 1, exc)
-        if story is None:
-            logger.warning("LLM story generation failed (%s). Using procedural storytelling engine.", last_err)
+        # ── Step 1: Generate Detailed Plot Blueprint (No Random Incidents) ──
+        logger.info("Generating plot blueprint for %s (%s)...", req.genre, category.name_hi)
+        blueprint = self.blueprint_gen.generate_blueprint(
+            genre=req.genre,
+            category_name=category.name_hi,
+            topic=topic,
+            target_scene_count=target_scene_count,
+            is_short=req.is_short,
+        )
+
+        # ── Step 2: Write Complete Scene-Based Story (Show, Don't Tell) ──
+        logger.info("Writing complete scene-based story from blueprint...")
+        story = self.scene_writer.write_story(
+            blueprint=blueprint,
+            genre=req.genre,
+            category_name=category.name_hi,
+            language=req.language,
+            target_duration_sec=req.target_duration_sec,
+            target_scene_count=target_scene_count,
+            is_short=req.is_short,
+            system_prompt=system,
+            visual_style=req.visual_style or category.visual_style,
+        )
+
+        if not story or not story.get("scenes"):
+            logger.warning("LLM story writer yielded empty scenes. Falling back to procedural engine.")
             story = self._generate_fallback_story(req, topic)
 
         story["research"] = topic
@@ -283,42 +197,57 @@ Schema:
         story["genre"] = req.genre
         story["is_short"] = req.is_short
         story["target_duration_sec"] = req.target_duration_sec
+        story["blueprint"] = blueprint
+
         if req.language == "hi" and not story.get("call_to_action"):
             story["call_to_action"] = (
                 "अगर आपको यह कहानी पसंद आई, तो वीडियो को लाइक करें "
-                "और ऐसी ही कहानियों के लिए चैनल को सब्सक्राइब करें।"
+                "और ऐसी ही रोमांचक कहानियों के लिए चैनल को सब्सक्राइब करें।"
             )
 
-        if not story.get("scenes"):
-            raise ValueError("Story missing scenes")
-
+        # ── Step 3: Clean, Deduplicate & Ensure Scene Pacing ──
         story = self._clean_and_deduplicate(story)
         story = self._ensure_scene_count(story, req, system)
         story = self._ensure_narration_depth(story, req, system)
         story = self._clean_and_deduplicate(story)
 
-        # ── Strict Story Quality Validation & Refinement Loop (Min 85/100) ──
-        checker = StoryQualityChecker(self.llm)
-        report = checker.evaluate(story)
-        retries = 0
+        # ── Step 4: Strict Story Quality Audit (Min 85/100, Repetition & Vague Penalties) ──
         min_score = getattr(self.settings, "story_min_quality_score", 85)
+        report = self.quality_checker.evaluate(story, blueprint=blueprint)
+        retries = 0
 
         while (not report.passed or report.total_score < min_score) and retries < 2:
             retries += 1
             logger.warning(
-                "Story scored %s/100 (below %s min). Refinement pass %s/2 with feedback: %s",
+                "Story scored %s/100 (below %s min; rep_penalty=%s, vague_penalty=%s). "
+                "Targeted rewrite pass %s/2 with feedback: %s",
                 report.total_score,
                 min_score,
+                getattr(report, "repetition_penalty", 0),
+                getattr(report, "vague_penalty", 0),
                 retries,
                 report.feedback_for_rewrite,
             )
-            story = self._refine_story(story, report, req, system)
+            story = self.rewriter.rewrite_problematic_sections(
+                story=story,
+                audit_feedback=report.feedback_for_rewrite,
+                weak_sections=report.weak_sections,
+                critical_issues=report.critical_issues,
+                blueprint=blueprint,
+                system_prompt=system,
+            )
             story = self._clean_and_deduplicate(story)
-            report = checker.evaluate(story)
+            report = self.quality_checker.evaluate(story, blueprint=blueprint)
 
         story["quality_report"] = report.to_dict()
         story["quality_score"] = report.total_score
-        logger.info("Final approved story quality score: %s/100 (passed=%s)", report.total_score, report.passed)
+        logger.info(
+            "Final approved story quality score: %s/100 (passed=%s, rep_penalty=%s, vague_penalty=%s)",
+            report.total_score,
+            report.passed,
+            getattr(report, "repetition_penalty", 0),
+            getattr(report, "vague_penalty", 0),
+        )
 
         with session_scope() as session:
             repo = Repository(session)
@@ -334,41 +263,6 @@ Schema:
             story["story_project_id"] = row.id
 
         return story
-
-    GENERIC_REPETITIVE_DIALOGUES = {
-        "यह क्या है",
-        "यह क्या हो रहा है",
-        "तुम कौन हो",
-        "यह कौन है",
-        "यह क्या मतलब है",
-        "तुम्हें कुछ नहीं पता",
-        "मैं जानता हूँ कि आप कौन हैं",
-        "मैं जानता हूं कि आप कौन हैं",
-        "यह कैसे संभव है",
-        "मैं समझ गया हूँ",
-        "मैं समझ गया हूं",
-        "मुझे इसके बारे में पता चलना चाहिए",
-        "मुझे यह चाबी मिलनी चाहिए",
-        "मैं अकेला नहीं हूँ",
-        "मैं अकेला नहीं हूं",
-        "मुझे यहाँ से निकलना होगा",
-        "मुझे यहां से निकलना होगा",
-        "कौन है",
-        "क्या हुआ",
-    }
-
-    DYNAMIC_DIALOGUE_POOL = [
-        "मुझे यकीन नहीं हो रहा... यह सच यहाँ कैसे छुपा हो सकता है?",
-        "इस खौफ़नाक मंज़र के पीछे कोई बहुत बड़ा राज़ छुपा है।",
-        "अगर यह बात सच है, तो हम सबकी जान भारी खतरे में है।",
-        "तुम मुझसे कुछ छुपा रहे हो... साफ़-साफ़ बताओ आखिर हुआ क्या था!",
-        "अब पीछे हटने का कोई रास्ता नहीं बचा, सच्चाई सामने लाकर ही रहेंगे।",
-        "यह सब कोई सोची-समझी साज़िश है... मुझे हर हाल में तह तक पहुँचना होगा।",
-        "रुको... तुमने इस निशान पर गौर किया? यहाँ कुछ तो बेहद भयानक घटा है।",
-        "अगर हमने तुरंत सच नहीं ढूँढा, तो बहुत देर हो जाएगी।",
-        "इस जगह की खामोशी में कोई गहरा खौफ़ दफ़न है...",
-        "मुझे लगा था कि सब कुछ सुलझ गया है, लेकिन यह तो बस एक शुरुआत थी...",
-    ]
 
     @staticmethod
     def clean_dialogue_line(raw_line: str, default_char: str = "पात्र") -> tuple[str, str, str]:
@@ -401,117 +295,8 @@ Schema:
         line = re.sub(r"^[:：\-—,\s]+", "", line).strip()
         return character, emotion, line
 
-    def _refine_story(
-        self,
-        story: dict[str, Any],
-        report: StoryQualityReport,
-        req: StoryGenerationRequest,
-        system: str,
-    ) -> dict[str, Any]:
-        """Rewrites weak sections identified by StoryQualityChecker to exceed 85/100 quality."""
-        scenes = story.get("scenes", [])
-        weak_nums = [w["scene_number"] for w in report.weak_sections if isinstance(w.get("scene_number"), int)]
-
-        prompt = f"""You are an elite Bollywood Script Doctor and Thriller Screenwriter.
-The Hindi story '{story.get("title")}' scored {report.total_score}/100 and requires targeted polishing.
-
-FEEDBACK & DIAGNOSTICS:
-{report.feedback_for_rewrite}
-
-Characters: {json.dumps(story.get("characters", []), ensure_ascii=False)}
-Scenes to revise/enhance: {weak_nums or [1, len(scenes)]}
-
-NON-NEGOTIABLE SCREENPLAY RULES:
-1. Scene 1 MUST have an electrifying cold hook starting directly with shock, discovery, or an impossible dilemma.
-2. Natural Hindi dialogues with genuine human emotion, pauses ('...'), and distinct personalities.
-3. No repetitive questions ('यह क्या है?', 'तुम कौन हो?'). Every line must advance the plot.
-4. The climax and ending must deliver a 100% complete, satisfying resolution resolving all unanswered questions.
-5. Provide a meaningful conclusion/takeaway matching the true events of the story.
-
-Return JSON ONLY:
-{{
-  "refined_scenes": [
-    {{
-      "scene_number": <int>,
-      "story_beat": "<hook|character_intro|mystery|suspense|twist|climax|ending>",
-      "visual_description": "Cinematic 35mm photo, ultra-realistic Bollywood lighting, 8k...",
-      "image_prompt": "Cinematic 35mm photo, ultra-realistic Bollywood lighting...",
-      "narration": "Rich atmospheric Devanagari paragraph (4-6 sentences, min 350 chars)...",
-      "dialogue": [
-        {{"character": "name", "acting_instruction": "emotion", "line": "Hindi line without labels", "gender": "male|female"}}
-      ],
-      "mood": "suspense"
-    }}
-  ],
-  "improved_ending": "Complete resolution tying all threads together",
-  "improved_conclusion_moral": "Meaningful organic emotional realization"
-}}"""
-        try:
-            resp = self.llm.complete(prompt, system=system, json_mode=True)
-            data = self.llm.parse_json(resp.text)
-            refined = {s.get("scene_number"): s for s in data.get("refined_scenes", []) if isinstance(s, dict)}
-            for sc in scenes:
-                sn = sc.get("scene_number")
-                if sn in refined:
-                    ref_sc = refined[sn]
-                    if ref_sc.get("narration"):
-                        sc["narration"] = ref_sc["narration"]
-                    if ref_sc.get("dialogue"):
-                        sc["dialogue"] = ref_sc["dialogue"]
-                    if ref_sc.get("visual_description"):
-                        sc["visual_description"] = ref_sc["visual_description"]
-                    if ref_sc.get("image_prompt"):
-                        sc["image_prompt"] = ref_sc["image_prompt"]
-                    if ref_sc.get("story_beat"):
-                        sc["story_beat"] = ref_sc["story_beat"]
-            if data.get("improved_ending"):
-                story["ending"] = data["improved_ending"]
-            if data.get("improved_conclusion_moral"):
-                story["conclusion_moral"] = data["improved_conclusion_moral"]
-            logger.info("Successfully polished %d weak scenes via script doctor", len(refined))
-        except Exception as exc:
-            logger.warning("LLM script doctor pass failed (%s); applying programmatic polish", exc)
-            self._apply_programmatic_polish(story, report)
-
-        return story
-
-    def _apply_programmatic_polish(self, story: dict[str, Any], report: StoryQualityReport) -> None:
-        scenes = story.get("scenes", [])
-        if not scenes:
-            return
-        # Fix opening hook if weak
-        s1 = scenes[0]
-        s1_narr = (s1.get("narration") or "").strip()
-        boring_starts = ["एक बार की बात", "एक गाँव में", "एक समय की बात", "किसी गाँव में"]
-        if any(b in s1_narr for b in boring_starts) or len(s1_narr) < 140:
-            s1["narration"] = (
-                "हवेली के उस बंद तहखाने से आधी रात को आ रही चीखों ने राघव के होश उड़ा दिए थे। "
-                "सामने टूटी हुई तिजोरी खुली पड़ी थी और अंदर लाल स्याही से लिखा एक पुराना खत रखा था। "
-                "खत में लिखा हर शब्द एक ऐसे कड़वे सच का खुलासा कर रहा था, जिसने उसके पैरों तले ज़मीन खिसका दी।"
-            )
-
-        # Fix ending if abrupt
-        ending = (story.get("ending") or "").strip()
-        if len(ending) < 80:
-            story["ending"] = (
-                "उस रात हवेली की दीवारें गवाह बनीं कि सच्चाई को चाहे कितनी भी गहरी खाई में दफ़न कर दिया जाए, "
-                "वक़्त आने पर वो सामने आकर ही रहती है। राघव ने उस खत को आग के हवाले कर दिया, और इसके साथ ही "
-                "बीस सालों से गाँव पर छाया खौफ़ का साया हमेशा-हमेशा के लिए मिट गया।"
-            )
-            if scenes:
-                scenes[-1]["narration"] = scenes[-1].get("narration", "") + " " + story["ending"]
-
-        if not story.get("conclusion_moral"):
-            story["conclusion_moral"] = (
-                "सच्चाई की राह जितनी भी कठिन और भयानक हो, अंत में जीत हमेशा सत्य और साहस की ही होती है।"
-            )
-
     def _clean_and_deduplicate(self, story: dict[str, Any]) -> dict[str, Any]:
-        scenes = story.get("scenes") or []
-        seen_dialogues: set[str] = set()
-        pool_idx = 0
-
-        # Build / normalize character reference sheets
+        """Cleans, normalizes, and deduplicates dialogue and characters using RepetitionDetector."""
         chars = story.get("characters") or []
         char_refs = story.get("character_references") or []
         ref_map = {c.get("name"): c for c in char_refs if isinstance(c, dict)}
@@ -534,63 +319,20 @@ Return JSON ONLY:
                 }
         story["character_references"] = list(ref_map.values())
 
+        # Use repetition detector for deep dialogue and narration cleaning
+        story = self.repetition_detector.clean_and_deduplicate(story)
+
+        scenes = story.get("scenes") or []
         for sc in scenes:
-            sn = sc.get("scene_number", 1)
             narr = (sc.get("narration") or "").strip()
-            # Clean narration of any accidental 'सूत्रधार:' or 'Narrator:' prefixes
-            narr = re.sub(r"^(?:सूत्रधार|Narrator|वॉइसओवर|Voiceover)\s*[:：\-]\s*", "", narr).strip()
-
-            # Ensure minimum narration substance
+            # If narration was an ultra-short stub, enrich it with a concrete situational detail
             if narr and len(narr) < 140:
-                mood = (sc.get("mood") or "suspense").lower()
-                if "suspense" in mood or "horror" in mood:
-                    narr += (
-                        " चारों तरफ गहरा सन्नाटा पसरा हुआ था और दिल की धड़कनें साफ़ सुनाई दे रही थीं। "
-                        "हवा का हर झोंका किसी अनहोनी का इशारा दे रहा था।"
-                    )
-                else:
-                    narr += (
-                        " माहौल में एक अजीब सी बेचैनी थी और हर गुज़रते पल के साथ "
-                        "सवालों की उलझन और भी गहरी होती जा रही थी।"
-                    )
-                sc["narration"] = narr
-
-            # Clean and deduplicate dialogue lines
-            new_dialogue = []
-            for d in sc.get("dialogue") or []:
-                if isinstance(d, str):
-                    d = {"character": "पात्र", "line": d, "gender": "male"}
-                elif not isinstance(d, dict):
-                    continue
-                raw_line = (d.get("line") or "").strip()
-                if not raw_line:
-                    continue
-
-                # Strip attribution labels from spoken audio line
-                parsed_char, parsed_emo, clean_line = self.clean_dialogue_line(
-                    raw_line, default_char=d.get("character", "पात्र")
+                sc["narration"] = (
+                    narr
+                    + " उसने कमरे के चारों तरफ नज़र दौड़ाई तो धूल भरी अलमारी पर उंगलियों के ताज़ा निशान दिखाई दिए। "
+                    + "खिड़की का पर्दा हल्का सा हिला, जैसे कोई अभी-अभी वहाँ से बाहर निकला हो।"
                 )
-                d["character"] = parsed_char
-                if parsed_emo:
-                    d["acting_instruction"] = parsed_emo
-                d["line"] = clean_line
 
-                norm = clean_line.replace("?", "").replace("।", "").replace("!", "").replace(".", "").replace(",", "").strip()
-                is_duplicate = norm in seen_dialogues
-
-                if is_duplicate:
-                    # Replace with unique, situation-grounded dialogue
-                    replacement = self.DYNAMIC_DIALOGUE_POOL[pool_idx % len(self.DYNAMIC_DIALOGUE_POOL)]
-                    pool_idx += 1
-                    logger.info("Scene %s: Replaced repetitive dialogue '%s' -> '%s'", sn, clean_line, replacement)
-                    d["line"] = replacement
-                    seen_dialogues.add(replacement)
-                else:
-                    seen_dialogues.add(norm)
-                new_dialogue.append(d)
-            sc["dialogue"] = new_dialogue
-
-        # Ensure hook_opening and ending match
         if scenes:
             if not story.get("hook_opening"):
                 story["hook_opening"] = (scenes[0].get("narration") or "")[:200]
@@ -598,6 +340,17 @@ Return JSON ONLY:
                 story["ending"] = (scenes[-1].get("narration") or "")[:200]
 
         return story
+
+    def _calculate_spoken_chars(self, story: dict[str, Any]) -> int:
+        total = 0
+        for sc in story.get("scenes") or []:
+            total += len(sc.get("narration", "").strip())
+            for d in sc.get("dialogue") or []:
+                if isinstance(d, dict):
+                    total += len((d.get("line") or "").strip())
+                elif isinstance(d, str):
+                    total += len(d.strip())
+        return total
 
     def _ensure_scene_count(
         self, story: dict[str, Any], req: StoryGenerationRequest, system: str
@@ -607,84 +360,57 @@ Return JSON ONLY:
         min_scenes = req.min_scenes or self.settings.story_min_scenes
         scenes = story.get("scenes") or []
 
-        # If we have at least 7 scenes and solid speech length, do NOT append zombie scenes!
         if len(scenes) >= max(7, min_scenes - 2) and self._calculate_spoken_chars(story) >= 3500:
-            logger.info("Story has %d strong scenes with %d characters — good complete story", len(scenes), self._calculate_spoken_chars(story))
+            logger.info(
+                "Story has %d strong scenes with %d characters — good complete story",
+                len(scenes),
+                self._calculate_spoken_chars(story),
+            )
             return story
 
         scenes_needed = min_scenes
         if len(scenes) >= scenes_needed:
             return story
 
-        for attempt in range(4):
+        for attempt in range(3):
             scenes = story.get("scenes") or []
             if len(scenes) >= scenes_needed:
                 break
             needed = min(scenes_needed - len(scenes), 3)
-            logger.info(
-                "Expanding story attempt %s: currently %s scenes -> adding %s more scenes",
-                attempt + 1,
-                len(scenes),
-                needed,
-            )
-            expand_prompt = f"""Continue this Hindi story JSON. Add exactly {needed} NEW scenes to progress the plot towards climax and resolution.
+            logger.info("Adding %s more concrete scenes to reach target pacing...", needed)
+
+            expand_prompt = f"""Continue this Hindi story script. Add exactly {needed} NEW scenes showing concrete events leading to climax.
 Title: {story.get("title")}
-Synopsis: {story.get("synopsis")}
 Characters: {story.get("characters")}
-Current scenes outline: {[s.get("story_beat", "") + ": " + s.get("narration", "")[:60] for s in scenes]}
-Last scenes: {scenes[-2:]}
+Last 2 scenes: {json.dumps(scenes[-2:], ensure_ascii=False)}
 
-HIGH-RETENTION RULES:
-- Every new scene MUST have an extensive narration paragraph (MINIMUM 300 Devanagari characters, 4-6 sentences) plus realistic dialogue.
-- Natural conversational Hindi dialogue (real Indian phrasing, emotional pauses '...', no textbook formality).
-- Narration sets scene context; dialogue carries spoken lines (never quote dialogue inside narration).
-- End each scene with a suspense hook or emotional turn towards the climax.
-- NEVER repeat generic questions like 'यह क्या है?', 'यह क्या हो रहा है?'.
+CRITICAL RULES:
+1. SHOW WHAT HAPPENED: Each scene must describe the concrete event (who, what, where, action, dialogue).
+2. NO VAGUE SUMMARIES: Zero sentences like "उसे बहुत संघर्ष करना पड़ा".
+3. NO REPETITION: Unique dialogue and distinct narrative progression.
 
-Return JSON:
-{{"scenes": [ ... new scenes only, scene_number continues ... ]}}
-"""
+Return JSON ONLY:
+{{"scenes": [ ... new scenes only, scene_number continues ... ]}}"""
+
             try:
                 response = self.llm.complete(expand_prompt, system=system, json_mode=True)
                 extra = self.llm.parse_json(response.text)
                 new_scenes = extra.get("scenes") or []
-                # Deduplicate: do not accept scenes that repeat existing narration or dialogue
                 existing_narrs = {s.get("narration", "").strip() for s in scenes}
-                unique_new = []
-                for sc in new_scenes:
-                    narr = sc.get("narration", "").strip()
-                    if narr and narr in existing_narrs:
-                        continue
-                    if narr:
-                        existing_narrs.add(narr)
-                    unique_new.append(sc)
-                new_scenes = unique_new
+                unique_new = [sc for sc in new_scenes if sc.get("narration", "").strip() not in existing_narrs]
 
-                if not new_scenes:
-                    logger.warning("Scene expansion attempt %s returned no unique scenes", attempt + 1)
+                if not unique_new:
                     break
+
                 max_num = max(s.get("scene_number", i + 1) for i, s in enumerate(scenes))
-                for i, sc in enumerate(new_scenes):
-                    sc["scene_number"] = sc.get("scene_number") or max_num + i + 1
-                story["scenes"] = scenes + new_scenes
+                for i, sc in enumerate(unique_new):
+                    sc["scene_number"] = sc.get("scene_number") or (max_num + i + 1)
+                story["scenes"] = scenes + unique_new
             except Exception as exc:
-                logger.warning(
-                    "Scene expansion attempt %s failed: %s — continuing with %s scenes",
-                    attempt + 1,
-                    exc,
-                    len(scenes),
-                )
+                logger.warning("Scene expansion attempt %s failed: %s", attempt + 1, exc)
                 break
 
         return story
-
-    def _calculate_spoken_chars(self, story: dict[str, Any]) -> int:
-        total = 0
-        for sc in story.get("scenes") or []:
-            total += len(sc.get("narration", "").strip())
-            for d in sc.get("dialogue") or []:
-                total += len(d.get("line", "").strip())
-        return total
 
     def _ensure_narration_depth(
         self, story: dict[str, Any], req: StoryGenerationRequest, system: str
@@ -695,37 +421,25 @@ Return JSON:
         min_chars = max(4200, int(req.target_duration_sec * 8.5))
         scenes = story.get("scenes") or []
         current_chars = self._calculate_spoken_chars(story)
-        logger.info(
-            "Checking story narration depth: %d chars (required min: %d chars for long video)",
-            current_chars,
-            min_chars,
-        )
 
         if current_chars >= min_chars:
             return story
 
-        logger.info(
-            "Story narration below target (%d < %d chars). Deepening scenes...",
-            current_chars,
-            min_chars,
-        )
+        logger.info("Story narration below target (%d < %d chars). Deepening scenes with concrete events...", current_chars, min_chars)
 
-        import json
         batch_size = 2
         for i in range(0, len(scenes), batch_size):
             batch = scenes[i : i + batch_size]
-            needs_expansion = [s for s in batch if len(s.get("narration", "").strip()) < 260]
+            needs_expansion = [s for s in batch if len((s.get("narration") or "").strip()) < 260]
             if not needs_expansion:
                 continue
 
-            prompt = f"""You are an elite Indian thriller and drama screenwriter.
-The scenes below from Hindi story '{story.get("title")}' are currently too short.
-Expand each scene's narration into a rich, detailed, dramatic Hindi Devanagari narrative paragraph of 5-8 sentences (MINIMUM 350 Devanagari characters) with intense atmosphere, character thoughts, and suspense.
-Also provide 2-4 lines of natural, realistic Hindi dialogue for each scene.
-Do NOT summarize. Write vivid, complete story prose.
-NEVER repeat generic questions like 'यह क्या है?' or 'यह क्या हो रहा है?'.
+            prompt = f"""You are an elite Indian thriller screenwriter.
+Expand each scene's narration into a rich, detailed, dramatic Hindi Devanagari narrative paragraph of 4-6 sentences (MINIMUM 350 characters) by describing CONCRETE physical actions, sensory details, and discoveries.
+Also provide 2-4 lines of natural Hindi dialogue.
+NEVER use vague summaries or cliché filler sentences.
 
-Scenes to expand:
+Scenes to deepen:
 {json.dumps([{'scene_number': s.get('scene_number'), 'current_narration': s.get('narration'), 'current_dialogue': s.get('dialogue')} for s in needs_expansion], ensure_ascii=False, indent=2)}
 
 Return JSON:
@@ -733,12 +447,12 @@ Return JSON:
   "expanded_scenes": [
     {{
       "scene_number": <int>,
-      "narration": "Rich detailed Devanagari narrative paragraph (min 350 characters)...",
-      "dialogue": [ {{"character": "name", "line": "Hindi Devanagari dialogue", "gender": "male|female"}} ]
+      "narration": "Rich detailed Devanagari narrative paragraph (min 350 characters) with concrete actions and sensory details...",
+      "dialogue": [ {{"character": "name", "line": "Hindi dialogue", "gender": "male|female"}} ]
     }}
   ]
-}}
-"""
+}}"""
+
             try:
                 res = self.llm.complete(prompt, system=system, json_mode=True)
                 data = self.llm.parse_json(res.text)
@@ -747,226 +461,29 @@ Return JSON:
                 for sc in needs_expansion:
                     sn = sc.get("scene_number")
                     if sn in expanded:
-                        new_narr = expanded[sn].get("narration", "").strip()
+                        new_narr = (expanded[sn].get("narration") or "").strip()
                         if len(new_narr) > len(sc.get("narration", "")):
                             sc["narration"] = new_narr
                         new_dial = expanded[sn].get("dialogue")
                         if new_dial and isinstance(new_dial, list) and len(new_dial) > 0:
                             sc["dialogue"] = new_dial
-                    else:
-                        # Fallback enrichment if LLM missed this scene
-                        narr = sc.get("narration", "").strip()
-                        sc["narration"] = narr + " चारों तरफ गहरा सन्नाटा और बेचैनी छाई हुई थी। दिल की धड़कनें साफ़ सुनाई दे रही थीं और हर पल कोई अनहोनी होने का अंदेशा बढ़ रहा था।"
             except Exception as exc:
-                logger.warning("Failed to expand batch %s-%s via LLM: %s — enriching locally", i, i + batch_size, exc)
-                # Local fallback enrichment so scenes never stay as 1-sentence stubs
-                for sc in needs_expansion:
-                    narr = sc.get("narration", "").strip()
-                    mood = (sc.get("mood") or "suspense").lower()
-                    if "suspense" in mood or "horror" in mood:
-                        sc["narration"] = narr + " चारों तरफ फैला गहरा अंधेरा और सन्नाटा रूह को कंपा रहा था। हर कदम पर ऐसा लग रहा था मानो कोई खौफ़नाक साया पीछे-पीछे चल रहा हो। दिल की धड़कनें इतनी तेज़ थीं कि गले तक आवाज़ आ रही थी।"
-                    else:
-                        sc["narration"] = narr + " आँखों के सामने तैरते सवालों का कोई जवाब नहीं मिल रहा था। मन में एक गहरा तूफ़ान उठ रहा था और दिल जानता था कि अब सच्चाई का सामना करने के सिवा कोई दूसरा रास्ता नहीं बचा है।"
+                logger.warning("Failed to expand batch via LLM: %s", exc)
 
-        new_total = self._calculate_spoken_chars(story)
-        logger.info("After expansion, story speech chars: %d (was %d)", new_total, current_chars)
         return story
 
     def _generate_fallback_story(self, req: StoryGenerationRequest, topic: dict[str, Any]) -> dict[str, Any]:
-        """Procedural story generator used when external AI APIs are unavailable or rate-limited."""
-        cat_id = req.category_id or "moral"
-        topic_title = topic.get("main_topic") or "अनकहा रहस्य और कर्मों का सच"
-
-        if "horror" in cat_id or "mystery" in cat_id:
-            title = topic_title if "रहस्य" in topic_title else "पुरानी हवेली का खौफ़नाक रहस्य"
-            characters = [
-                {"name": "राघव", "gender": "male", "voice_tag": "male_1"},
-                {"name": "माया", "gender": "female", "voice_tag": "female_1"},
-            ]
-            scenes = [
-                {
-                    "scene_number": 1,
-                    "visual_description": "A dense foggy forest in front of an ancient abandoned Indian mansion at midnight, lightning in the sky.",
-                    "image_prompt": "Cinematic photo of an ancient dark abandoned Indian haveli at stormy midnight, heavy rain, glowing lightning, ultra-detailed 8k",
-                    "narration": "रात के बारह बज चुके थे और मूसलाधार बारिश में पुरानी हवेली के टूटे हुए दरवाज़े हवा के थपेड़ों से लगातार खड़खड़ा रहे थे। राघव और माया अपनी गाड़ी खराब होने के बाद इस सुनसान खंडहर में पनाह लेने पहुँचे थे। चारों तरफ फैली सीलन और धूल भरी खामोशी दिल में एक अजीब सी बेचैनी घोल रही थी।",
-                    "dialogue": [
-                        {"character": "राघव", "line": "यहाँ अंदर आ जाओ माया, बाहर तूफ़ान बहुत तेज़ है।", "gender": "male"},
-                        {"character": "माया", "line": "राघव, इस जगह का माहौल कुछ ठीक नहीं लग रहा। क्या यहाँ कोई रहता है?", "gender": "female"},
-                    ],
-                },
-                {
-                    "scene_number": 2,
-                    "visual_description": "A grand abandoned hall with spiderwebs, a massive grandfather clock ticking eerily.",
-                    "image_prompt": "Ancient dusty hall inside an Indian palace, broken antique furniture, moonlight through broken windows, eerie suspenseful atmosphere",
-                    "narration": "जैसे ही दोनों हवेली के बड़े दालान में दाखिल हुए, एक भारी लोहे की घंटी की गूंज दीवारों से टकराने लगी। सालों से बंद पड़े इस खंडहर में एक पुरानी घड़ी अचानक बिना चाबी के टिक-टिक करने लगी थी। हवा में अचानक जलते हुए दीए और चमेली के तेल की खुशबू फैलने लगी।",
-                    "dialogue": [
-                        {"character": "राघव", "line": "परेशान मत हो, शायद यह पुरानी घड़ी हवा के दबाव से चल पड़ी होगी।", "gender": "male"},
-                        {"character": "माया", "line": "हवा से घड़ी चल सकती है राघव, लेकिन यह जलती हुई मोमबत्तियाँ किसने रखी हैं?", "gender": "female"},
-                    ],
-                },
-                {
-                    "scene_number": 3,
-                    "visual_description": "A dark wooden staircase leading into shadows, strange muddy footprints on the stairs.",
-                    "image_prompt": "Dramatic view of an ancient creaking wooden staircase in a dark palace, shadows stretching, cinematic moody lighting",
-                    "narration": "सीढ़ियों के पास ताज़े गीले पैरों के निशान ऊपरी मंजिल की तरफ जा रहे थे। राघव ने अपनी टॉर्च की रोशनी सीढ़ियों के अंधेरे में डाली, लेकिन रोशनी कुछ ही दूरी पर जाकर जैसे काले कोहरे में समा जाती थी। ऊपर से किसी के भारी कदमों की धीमी आहट साफ़ सुनाई दे रही थी।",
-                    "dialogue": [
-                        {"character": "माया", "line": "राघव रुको! ऊपर मत जाओ, कोई हमारा पीछा कर रहा है।", "gender": "female"},
-                        {"character": "राघव", "line": "अगर कोई है तो हमें सच जानना ही होगा, हम यहाँ छिपकर नहीं बैठ सकते।", "gender": "male"},
-                    ],
-                },
-                {
-                    "scene_number": 4,
-                    "visual_description": "A locked room with an ancient iron lock covered in mysterious red symbols.",
-                    "image_prompt": "Old wooden door with a heavy rusted padlock, mysterious red symbols, dark hallway, ominous glow",
-                    "narration": "ऊपर की मंजिल पर एक पुराना बंद कमरा था जिसके दरवाज़े पर भारी लोहे का ताला लटक रहा था। दरवाज़े के नीचे से एक हल्की नीली रोशनी बाहर झांक रही थी। कमरे के अंदर से किसी के धीमे-धीमे रोने और फुसफुसाने की दर्दनाक आवाज़ें आ रही थीं।",
-                    "dialogue": [
-                        {"character": "माया", "line": "भगवान के लिए यहाँ से वापस चलो राघव, यह कोई इंसान नहीं है!", "gender": "female"},
-                        {"character": "राघव", "line": "यह आवाज़ जानी-पहचानी लग रही है, जैसे कोई बरसों से मदद की गुहार लगा रहा हो।", "gender": "male"},
-                    ],
-                },
-                {
-                    "scene_number": 5,
-                    "visual_description": "Inside the mysterious room, a large carved wooden chest emitting a soft golden glow.",
-                    "image_prompt": "Mysterious antique wooden chest in the center of an empty room, intricate carvings, magical subtle glow, atmospheric dust motes",
-                    "narration": "राघव ने भारी धक्का देकर दरवाज़ा खोला तो कमरा बिल्कुल खाली था, सिवाय बीच में रखे एक विशाल नक्काशीदार संदूक के। संदूक के ऊपर एक पुरानी डायरी और एक तस्वीर रखी हुई थी। तस्वीर में राघव के दादाजी का चेहरा साफ़ दिखाई दे रहा था।",
-                    "dialogue": [
-                        {"character": "राघव", "line": "यह... यह तो मेरे दादाजी की तस्वीर है! उनका इस हवेली से क्या रिश्ता था?", "gender": "male"},
-                        {"character": "माया", "line": "डायरी देखो राघव, इस पर पचास साल पहले की तारीख लिखी है।", "gender": "female"},
-                    ],
-                },
-                {
-                    "scene_number": 6,
-                    "visual_description": "Close up of an old yellowed diary page with faded Hindi writing and an antique key.",
-                    "image_prompt": "Close-up of vintage yellowed journal pages with handwritten Hindi script, an ornate brass key beside it, dramatic candle lighting",
-                    "narration": "डायरी के पन्नों में दफन सच्चाई पढ़कर दोनों के रोंगटे खड़े हो गए। पचास साल पहले इसी हवेली के मालिक ने गाँव के ग़रीब किसानों का खज़ाना छिपाया था, और राघव के दादाजी ने उस खज़ाने की रक्षा का वचन दिया था। लेकिन वो खज़ाना कभी बाहर नहीं आ सका क्योंकि हवेली में आग लग गई थी।",
-                    "dialogue": [
-                        {"character": "माया", "line": "तो यह हवेली भुतहा नहीं है, यहाँ तो उन किसानों की अमानत आज भी महफ़ूज़ है!", "gender": "female"},
-                        {"character": "राघव", "line": "दादाजी का अधूरा वादा... आज मुझे हर हाल में पूरा करना होगा।", "gender": "male"},
-                    ],
-                },
-                {
-                    "scene_number": 7,
-                    "visual_description": "The open chest revealing ancestral treasures and papers meant for village schools and welfare.",
-                    "image_prompt": "Open antique chest with golden coins, deeds and ancient documents, warm lighting spreading in the room",
-                    "narration": "जैसे ही राघव ने संदूक का ताला खोला, उसमें से सोने के सिक्कों के साथ गाँव के स्कूल और ज़मीनों के असली दस्तावेज़ निकले। उसी पल हवेली का भयानक अंधेरा और खौफ़नाक सन्नाटा एक सुकून भरी शांति में बदल गया, जैसे कोई बेचैन आत्मा हमेशा के लिए आज़ाद हो गई हो।",
-                    "dialogue": [
-                        {"character": "राघव", "line": "माया, कल सुबह यह सारा खज़ाना और ज़मीनें गाँव वालों को सौंप दी जाएँगी।", "gender": "male"},
-                        {"character": "माया", "line": "तुम्हारे दादाजी की आत्मा को आज सच में शांति मिल गई राघव।", "gender": "female"},
-                    ],
-                },
-                {
-                    "scene_number": 8,
-                    "visual_description": "Early sunrise over the peaceful mansion and nearby village, warm morning rays cutting through mist.",
-                    "image_prompt": "Beautiful golden sunrise over an ancient Indian village and mansion, mist dissolving, rays of hope, cinematic wide angle",
-                    "narration": "सुबह की पहली सुनहरी किरण हवेली की खिड़कियों से अंदर आई तो सारा डर काफूर हो चुका था। जिस हवेली को लोग सालों से खौफ़ का साया समझते थे, वो दरअसल एक निष्ठावान वादे और सच्चाई की अमानत थी। राघव और माया ने मुस्कुराते हुए नई सुबह का स्वागत किया।",
-                    "dialogue": [
-                        {"character": "राघव", "line": "डर सिर्फ सच से अनजान होने का नाम है, सच सामने आते ही सब रोशन हो जाता है।", "gender": "male"},
-                        {"character": "माया", "line": "चलो, गाँव के लोगों को उनकी खुशियाँ लौटाने का समय हो गया है।", "gender": "female"},
-                    ],
-                },
-            ]
-            synopsis = "पुरानी हवेली में रात बिताने पहुँचे दो मुसाफ़िरों को खौफ़नाक सायों के पीछे एक 50 साल पुराने वादे और खज़ाने का चौंकाने वाला सच मिलता है।"
-            moral = "डर तभी तक डराता है जब तक सच सामने नहीं आता। ईमानदारी और वचन की शक्ति हर अंधेरे को मिटा देती है।"
-
-        else:
-            # Moral / Village / General
-            title = topic_title if len(topic_title) > 6 else "कर्मों का सच्चा हिसाब और अनमोल सीख"
-            characters = [
-                {"name": "माधव", "gender": "male", "voice_tag": "male_1"},
-                {"name": "सुमित्रा", "gender": "female", "voice_tag": "female_1"},
-            ]
-            scenes = [
-                {
-                    "scene_number": 1,
-                    "visual_description": "An honest potter working on clay wheel outside a humble mud house in an Indian village during golden dusk.",
-                    "image_prompt": "Humble Indian potter shaping clay pot on wooden wheel outside village hut, golden sunset light, cinematic realism, 8k",
-                    "narration": "गाँव के एक छोटे से कोने में माधव अपनी पत्नी सुमित्रा के साथ मिट्टी के बर्तन बनाकर ईमानदारी से ज़िंदगी बसर कर रहा था। माधव की बनाई मटकियों में एक खास मिठास थी, लेकिन गरीबी उसका पीछा नहीं छोड़ रही थी। फिर भी माधव कभी बेईमानी के रास्ते पर नहीं चला।",
-                    "dialogue": [
-                        {"character": "सुमित्रा", "line": "माधव, आज बाज़ार में सब बर्तन बिक गए क्या? घर में राशन खत्म होने वाला है।", "gender": "female"},
-                        {"character": "माधव", "line": "चिंता मत करो सुमित्रा, ईश्वर पर भरोसा रखो। मेहनत की कमाई में हमेशा बरकत होती है।", "gender": "male"},
-                    ],
-                },
-                {
-                    "scene_number": 2,
-                    "visual_description": "A wealthy arrogant merchant riding through the dusty village path looking down upon villagers.",
-                    "image_prompt": "Wealthy arrogant Indian landlord on decorated cart in dusty village street, villagers looking with concern, rich textures",
-                    "narration": "उसी गाँव का सबसे अमीर साहूकार धनपत राय हर किसी की मजबूरी का फायदा उठाकर उनकी ज़मीनें हड़प लेता था। धनपत का मानना था कि दुनिया में सिर्फ दौलत की कीमत होती है, इंसानियत और ईमानदारी की कोई औकात नहीं।",
-                    "dialogue": [
-                        {"character": "माधव", "line": "साहूकार जी, गाँव के गरीब किसानों का कर्ज़ थोड़ा कम कर दीजिए, सब परेशान हैं।", "gender": "male"},
-                        {"character": "सुमित्रा", "line": "इन्हें समझाने का कोई फायदा नहीं माधव, पत्थर पर पानी डालने से फूल नहीं खिलते।", "gender": "female"},
-                    ],
-                },
-                {
-                    "scene_number": 3,
-                    "visual_description": "A dusty road near the river where a leather pouch full of gold coins lies forgotten in the grass.",
-                    "image_prompt": "Old leather pouch bursting with gold coins lying on dirt pathway near riverbank, tall grass, dramatic lighting",
-                    "narration": "एक शाम जब माधव नदी किनारे चिकनी मिट्टी लेने गया, तो पगडंडी की झाड़ियों में उसे एक भारी चमड़े की थैली दिखाई दी। जब उसने थैली खोली, तो उसमें चमकती हुई सोने की अशर्फियां और साहूकार के बहीखाते के ज़रूरी कागज़ात थे।",
-                    "dialogue": [
-                        {"character": "माधव", "line": "हे भगवान! यह तो साहूकार धनपत का खोया हुआ बटुआ है, जिसमें उनकी सारी दौलत है।", "gender": "male"},
-                        {"character": "सुमित्रा", "line": "यह किसी की मेहनत की या खोई हुई चीज़ है माधव, इसे तुरंत लौटाना हमारा फ़र्ज़ है।", "gender": "female"},
-                    ],
-                },
-                {
-                    "scene_number": 4,
-                    "visual_description": "Madhav standing at the grand mansion gate of the wealthy merchant holding the leather bag.",
-                    "image_prompt": "Humble villager standing in front of grand carved wooden doors of an Indian mansion, holding leather bag, evening glow",
-                    "narration": "माधव बिना एक पल गंवाए सीधे साहूकार की हवेली पहुँचा। हवेली में मातम का माहौल था क्योंकि साहूकार का सारा खज़ाना उसी थैली में था और वह सदमे से बीमार पड़ चुका था। माधव ने आगे बढ़कर पूरी थैली साहूकार के पैरों में रख दी।",
-                    "dialogue": [
-                        {"character": "माधव", "line": "साहूकार जी, आपकी यह अमानत मुझे नदी किनारे मिली थी। संभालिए, एक भी सिक्का कम नहीं है।", "gender": "male"},
-                        {"character": "सुमित्रा", "line": "हमें आपके पैसे नहीं चाहिए, बस आप ठीक हो जाइए यही प्रार्थना है।", "gender": "female"},
-                    ],
-                },
-                {
-                    "scene_number": 5,
-                    "visual_description": "The wealthy merchant looking with wide eyes of shock and shame at the honest poor couple.",
-                    "image_prompt": "Elderly wealthy Indian merchant with tears of remorse looking at poor honest man, rich hall background, emotional depth",
-                    "narration": "साहूकार की आँखें फटी की फटी रह गईं। जिस गरीब कुम्हार को वह तुच्छ समझता था, उसी ने बिना किसी लालच के उसकी ज़िंदगी भर की कमाई बिना छुए लौटा दी थी। साहूकार के अंदर का अहंकार एक ही पल में चकनाचूर हो गया।",
-                    "dialogue": [
-                        {"character": "माधव", "line": "ईमानदारी की रोटी सूखी भले हो, लेकिन रात को चैन की नींद उसी से आती है।", "gender": "male"},
-                        {"character": "सुमित्रा", "line": "दौलत तो हाथ का मैल है, इंसान के साथ केवल उसके नेक कर्म ही जाते हैं।", "gender": "female"},
-                    ],
-                },
-                {
-                    "scene_number": 6,
-                    "visual_description": "The merchant tearing up the debt papers of all poor villagers in front of the village panchayat.",
-                    "image_prompt": "Indian village panchayat meeting under banyan tree, merchant burning debt contracts, emotional villagers clapping",
-                    "narration": "अगली सुबह साहूकार ने पूरे गाँव को बरगद के पेड़ के नीचे बुलाया। माधव की ईमानदारी ने साहूकार का दिल हमेशा के लिए बदल दिया था। उसने भरे समाज में सभी गरीब किसानों के कर्ज़ के कागज़ात फाड़ दिए और गाँव वालों की ज़मीनें वापस लौटा दीं।",
-                    "dialogue": [
-                        {"character": "माधव", "line": "साहूकार जी, आज आपने सच में असली अमीरी का मतलब समझ लिया है।", "gender": "male"},
-                        {"character": "सुमित्रा", "line": "जब दिल बड़ा हो जाए, तो पूरी दुनिया अपनी लगने लगती है।", "gender": "female"},
-                    ],
-                },
-                {
-                    "scene_number": 7,
-                    "visual_description": "Villagers celebrating together, Madhav and Sumitra honored with flower garlands.",
-                    "image_prompt": "Joyous celebration in Indian village, colorful marigold garlands, smiling villagers, festive atmosphere",
-                    "narration": "गाँव भर में खुशियों की लहर दौड़ गई। साहूकार ने माधव को गाँव के कुटीर उद्योग का मुख्य प्रबंधक बनाया और उसे गाँव के बच्चों के स्कूल की ज़िम्मेदारी सौंपी। ईमानदारी की खुशबू पूरे देहात में महक उठी थी।",
-                    "dialogue": [
-                        {"character": "माधव", "line": "देखा सुमित्रा, सच्चाई का रास्ता कठिन ज़रूर होता है, लेकिन मंज़िल बहुत खूबसूरत होती है।", "gender": "male"},
-                        {"character": "सुमित्रा", "line": "सच है माधव, अच्छे कर्मों का फल देर से सही, लेकिन मिलता ज़रूर है।", "gender": "female"},
-                    ],
-                },
-                {
-                    "scene_number": 8,
-                    "visual_description": "Madhav teaching young village children to shape clay under the golden afternoon sun, peaceful community.",
-                    "image_prompt": "Warm golden scene of potter teaching village children to make earthen lamps, smiling faces, peaceful village backdrop",
-                    "narration": "माधव के जीवन ने यह साबित कर दिया कि दौलत से इंसान बड़ा नहीं बनता, बल्कि उसकी नीयत और कर्म ही उसका असली परिचय होते हैं। जो दूसरों के लिए भलाई बोता है, उसकी ज़िंदगी में हमेशा खुशियों की फसल लहलहाती है।",
-                    "dialogue": [
-                        {"character": "माधव", "line": "हमेशा याद रखना बच्चों, सच्चाई की राह पर कभी कदम मत डगमगाना।", "gender": "male"},
-                        {"character": "सुमित्रा", "line": "नेक नीयत ही इंसान की सबसे बड़ी पूँजी है।", "gender": "female"},
-                    ],
-                },
-            ]
-            synopsis = "गरीब कुम्हार माधव को साहूकार का सोने से भरा बटुआ मिलता है। उसकी ईमानदारी साहूकार का कठोर दिल बदल देती है और पूरे गाँव की किस्मत संवर जाती है।"
-            moral = "ईमानदारी और नेक नीयत सबसे बड़ी दौलत है। अच्छे कर्म कभी व्यर्थ नहीं जाते और एक दिन दुनिया को बदलकर रख देते हैं।"
-
-        return {
-            "title": title,
-            "synopsis": synopsis,
-            "scenes": scenes,
-            "characters": characters,
-            "moral": moral,
-            "ending": "सच्चाई और अच्छाई की हमेशा जीत होती है।",
-            "call_to_action": "अगर आपको यह कहानी पसंद आई, तो वीडियो को लाइक करें और ऐसी ही प्रेरणादायक कहानियों के लिए चैनल को सब्सक्राइब करें।",
-            "story_project_id": 1,
-        }
+        """Procedural story generator adhering strictly to SHOW, DON'T TELL with ZERO vague summaries."""
+        blueprint = self.blueprint_gen._procedural_fallback_blueprint(
+            genre=req.genre,
+            category_name="रहस्य",
+            topic=topic,
+            target_scene_count=5 if req.is_short else 8,
+        )
+        return self.scene_writer._procedural_scene_story(
+            blueprint=blueprint,
+            genre=req.genre,
+            category_name="रहस्य",
+            target_scene_count=5 if req.is_short else 8,
+            is_short=req.is_short,
+        )
