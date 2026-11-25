@@ -14,6 +14,7 @@ from app.database import Repository, session_scope
 from app.database.models import (
     LearningRecord,
     MistakeReport,
+    StoryProject,
     VideoAsset,
     VideoPerformanceSnapshot,
     YouTubeUpload,
